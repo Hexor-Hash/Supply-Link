@@ -1,7 +1,20 @@
-"use client";
+'use client';
 
-import type { Product, TrackingEvent, EventType } from "@/lib/types";
-import { EVENT_TYPE_CONFIG } from "@/lib/eventTypeConfig";
+import type { Product, TrackingEvent, EventType } from '@/lib/types';
+import { EVENT_TYPE_CONFIG } from '@/lib/eventTypeConfig';
+import {
+  calculateProvenanceScore,
+  getProvenanceScorePercentage,
+  getProvenanceScoreLabel,
+  getProvenanceScoreColor,
+} from '@/lib/utils/provenanceScore';
+import {
+  calculateSustainabilityScore,
+  getSustainabilityBadgeClass,
+} from '@/lib/utils/sustainabilityScore';
+import { getCategoryLabel, getSubcategoryLabel } from '@/lib/taxonomy';
+import { getCertificationLabel } from '@/lib/certifications';
+import { ShieldCheck, Leaf, TrendingUp } from 'lucide-react';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -25,14 +38,14 @@ function Stat({
 }: {
   label: string;
   value: string | number;
-  highlight?: "better" | "worse" | "same";
+  highlight?: 'better' | 'worse' | 'same';
 }) {
   const color =
-    highlight === "better"
-      ? "text-green-600 dark:text-green-400"
-      : highlight === "worse"
-      ? "text-red-500"
-      : "text-[var(--foreground)]";
+    highlight === 'better'
+      ? 'text-green-600 dark:text-green-400'
+      : highlight === 'worse'
+        ? 'text-red-500'
+        : 'text-[var(--foreground)]';
   return (
     <div className="flex flex-col gap-0.5">
       <span className="text-xs text-[var(--muted)]">{label}</span>
@@ -63,13 +76,13 @@ function TimelineColumn({
           <li key={i} className="ml-5">
             <span
               className={`absolute -left-2 mt-1 h-4 w-4 rounded-full border-2 border-[var(--background)] ${
-                isUnique ? "ring-2 ring-amber-400" : ""
+                isUnique ? 'ring-2 ring-amber-400' : ''
               }`}
-              style={{ background: cfg?.color ?? "#6b7280" }}
+              style={{ background: cfg?.color ?? '#6b7280' }}
             />
             <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
               <span
-                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium ${cfg?.badgeClass ?? "bg-gray-100 text-gray-800"}`}
+                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium ${cfg?.badgeClass ?? 'bg-gray-100 text-gray-800'}`}
               >
                 {Icon && <Icon size={10} />}
                 {cfg?.label ?? e.eventType}
@@ -81,9 +94,7 @@ function TimelineColumn({
               )}
             </div>
             <p className="text-xs text-[var(--foreground)] font-medium">{e.location}</p>
-            <p className="text-xs text-[var(--muted)]">
-              {new Date(e.timestamp).toLocaleString()}
-            </p>
+            <p className="text-xs text-[var(--muted)]">{new Date(e.timestamp).toLocaleString()}</p>
             {i > 0 && (
               <p className="text-xs text-[var(--muted)] mt-0.5">
                 +{fmtDuration(e.timestamp - events[i - 1].timestamp)} since prev
@@ -109,11 +120,12 @@ export function CompareTimeline({ products, eventsByProduct }: CompareTimelinePr
     const evts = eventsByProduct[p.id] ?? [];
     const sorted = [...evts].sort((a, b) => a.timestamp - b.timestamp);
     const duration =
-      sorted.length >= 2
-        ? sorted[sorted.length - 1].timestamp - sorted[0].timestamp
-        : null;
+      sorted.length >= 2 ? sorted[sorted.length - 1].timestamp - sorted[0].timestamp : null;
     const types = new Set(evts.map((e) => e.eventType as EventType));
-    return { product: p, evts: sorted, duration, types };
+    const provenanceBreakdown = calculateProvenanceScore(evts);
+    const provenancePct = getProvenanceScorePercentage(provenanceBreakdown);
+    const sustainabilityBreakdown = calculateSustainabilityScore(evts);
+    return { product: p, evts: sorted, duration, types, provenancePct, sustainabilityBreakdown };
   });
 
   // Which event types are present in each product but not all products
@@ -136,71 +148,228 @@ export function CompareTimeline({ products, eventsByProduct }: CompareTimelinePr
   const minDuration = validDurations.length ? Math.min(...validDurations) : null;
   const maxDuration = validDurations.length ? Math.max(...validDurations) : null;
 
+  const provenancePcts = stats.map((s) => s.provenancePct);
+  const maxProvenance = Math.max(...provenancePcts);
+  const minProvenance = Math.min(...provenancePcts);
+
+  const sustainabilityScores = stats.map((s) => s.sustainabilityBreakdown.total);
+  const maxSustainability = Math.max(...sustainabilityScores);
+  const minSustainability = Math.min(...sustainabilityScores);
+
   return (
     <div className="overflow-x-auto">
       <div
         className="grid gap-4 min-w-[600px]"
         style={{ gridTemplateColumns: `repeat(${products.length}, minmax(0, 1fr))` }}
       >
-        {stats.map(({ product, evts, duration, types }, i) => (
-          <div
-            key={product.id}
-            className="border border-[var(--card-border)] bg-[var(--card)] rounded-xl p-5 flex flex-col gap-4"
-          >
-            {/* Product header */}
-            <div>
-              <h2 className="text-base font-semibold text-[var(--foreground)] leading-tight">
-                {product.name}
-              </h2>
-              <p className="text-xs text-[var(--muted)] mt-0.5">Origin: {product.origin}</p>
-              <p className="text-xs font-mono text-[var(--muted)] truncate mt-0.5">{product.id}</p>
-            </div>
+        {stats.map(
+          ({ product, evts, duration, types, provenancePct, sustainabilityBreakdown }, i) => (
+            <div
+              key={product.id}
+              className="border border-[var(--card-border)] bg-[var(--card)] rounded-xl p-5 flex flex-col gap-4"
+            >
+              {/* Product header */}
+              <div>
+                <h2 className="text-base font-semibold text-[var(--foreground)] leading-tight">
+                  {product.name}
+                </h2>
+                <p className="text-xs text-[var(--muted)] mt-0.5">Origin: {product.origin}</p>
+                <p className="text-xs font-mono text-[var(--muted)] truncate mt-0.5">
+                  {product.id}
+                </p>
+                {product.category && (
+                  <p className="text-xs mt-1">
+                    <span className="px-1.5 py-0.5 rounded-full bg-violet-500/10 text-violet-600 dark:text-violet-400 font-medium">
+                      {getCategoryLabel(product.category)}
+                      {product.subcategory &&
+                        ` › ${getSubcategoryLabel(product.category, product.subcategory)}`}
+                    </span>
+                  </p>
+                )}
+              </div>
 
-            {/* Stats row */}
-            <div className="grid grid-cols-2 gap-3 border border-[var(--card-border)] rounded-lg p-3">
-              <Stat
-                label="Events"
-                value={evts.length}
-                highlight={
-                  counts.every((c) => c === evts.length)
-                    ? "same"
-                    : evts.length === maxCount
-                    ? "better"
-                    : evts.length === minCount
-                    ? "worse"
-                    : undefined
-                }
-              />
-              <Stat
-                label="Stages"
-                value={types.size}
-              />
-              <Stat
-                label="Total duration"
-                value={duration !== null ? fmtDuration(duration) : "—"}
-                highlight={
-                  duration === null
-                    ? undefined
-                    : duration === minDuration
-                    ? "better"
-                    : duration === maxDuration
-                    ? "worse"
-                    : undefined
-                }
-              />
-              <Stat
-                label="Unique stages"
-                value={diffTypesPerProduct[i].size > 0 ? diffTypesPerProduct[i].size : "—"}
-              />
-            </div>
+              {/* Stats row */}
+              <div className="grid grid-cols-2 gap-3 border border-[var(--card-border)] rounded-lg p-3">
+                <Stat
+                  label="Events"
+                  value={evts.length}
+                  highlight={
+                    counts.every((c) => c === evts.length)
+                      ? 'same'
+                      : evts.length === maxCount
+                        ? 'better'
+                        : evts.length === minCount
+                          ? 'worse'
+                          : undefined
+                  }
+                />
+                <Stat label="Stages" value={types.size} />
+                <Stat
+                  label="Total duration"
+                  value={duration !== null ? fmtDuration(duration) : '—'}
+                  highlight={
+                    duration === null
+                      ? undefined
+                      : duration === minDuration
+                        ? 'better'
+                        : duration === maxDuration
+                          ? 'worse'
+                          : undefined
+                  }
+                />
+                <Stat
+                  label="Unique stages"
+                  value={diffTypesPerProduct[i].size > 0 ? diffTypesPerProduct[i].size : '—'}
+                />
+              </div>
 
-            {/* Timeline */}
-            <TimelineColumn
-              events={evts}
-              diffTypes={diffTypesPerProduct[i]}
-            />
-          </div>
-        ))}
+              {/* Provenance + sustainability scores */}
+              <div className="grid grid-cols-2 gap-3 border border-[var(--card-border)] rounded-lg p-3">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs text-[var(--muted)] flex items-center gap-1">
+                    <TrendingUp size={11} /> Provenance
+                  </span>
+                  <span
+                    className={`text-sm font-semibold ${getProvenanceScoreColor(provenancePct)}`}
+                  >
+                    {provenancePct}%
+                    <span className="text-xs font-normal text-[var(--muted)] ml-1">
+                      {getProvenanceScoreLabel(provenancePct)}
+                    </span>
+                  </span>
+                  <div className="w-full h-1.5 bg-[var(--card-border)] rounded-full overflow-hidden mt-0.5">
+                    <div
+                      className={`h-full rounded-full ${
+                        provenancePct >= 90
+                          ? 'bg-green-500'
+                          : provenancePct >= 75
+                            ? 'bg-blue-500'
+                            : provenancePct >= 60
+                              ? 'bg-yellow-500'
+                              : provenancePct >= 45
+                                ? 'bg-orange-500'
+                                : 'bg-red-500'
+                      }`}
+                      style={{ width: `${provenancePct}%` }}
+                    />
+                  </div>
+                  {provenancePcts.length > 1 && (
+                    <span
+                      className={`text-xs mt-0.5 ${
+                        provenancePcts.every((p) => p === provenancePct)
+                          ? ''
+                          : provenancePct === maxProvenance
+                            ? 'text-green-600 dark:text-green-400'
+                            : provenancePct === minProvenance
+                              ? 'text-red-500'
+                              : ''
+                      }`}
+                    >
+                      {provenancePcts.every((p) => p === provenancePct)
+                        ? ''
+                        : provenancePct === maxProvenance
+                          ? '↑ highest'
+                          : provenancePct === minProvenance
+                            ? '↓ lowest'
+                            : ''}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs text-[var(--muted)] flex items-center gap-1">
+                    <Leaf size={11} /> Sustainability
+                  </span>
+                  <span
+                    className={`text-sm font-semibold ${
+                      sustainabilityBreakdown.total >= 60
+                        ? 'text-green-600 dark:text-green-400'
+                        : sustainabilityBreakdown.total >= 40
+                          ? 'text-yellow-600 dark:text-yellow-400'
+                          : sustainabilityBreakdown.total > 0
+                            ? 'text-orange-600 dark:text-orange-400'
+                            : 'text-[var(--muted)]'
+                    }`}
+                  >
+                    {sustainabilityBreakdown.total > 0
+                      ? `${sustainabilityBreakdown.total}/100`
+                      : '—'}
+                    {sustainabilityBreakdown.total > 0 && (
+                      <span
+                        className={`text-xs font-medium ml-1.5 px-1.5 py-0.5 rounded-full border ${getSustainabilityBadgeClass(sustainabilityBreakdown.level)}`}
+                      >
+                        {sustainabilityBreakdown.label}
+                      </span>
+                    )}
+                  </span>
+                  {sustainabilityBreakdown.total > 0 && (
+                    <div className="w-full h-1.5 bg-[var(--card-border)] rounded-full overflow-hidden mt-0.5">
+                      <div
+                        className={`h-full rounded-full ${
+                          sustainabilityBreakdown.total >= 80
+                            ? 'bg-emerald-500'
+                            : sustainabilityBreakdown.total >= 60
+                              ? 'bg-green-500'
+                              : sustainabilityBreakdown.total >= 40
+                                ? 'bg-yellow-500'
+                                : 'bg-orange-500'
+                        }`}
+                        style={{ width: `${sustainabilityBreakdown.total}%` }}
+                      />
+                    </div>
+                  )}
+                  {sustainabilityScores.length > 1 && sustainabilityBreakdown.total > 0 && (
+                    <span
+                      className={`text-xs mt-0.5 ${
+                        sustainabilityScores.every((s) => s === sustainabilityBreakdown.total)
+                          ? ''
+                          : sustainabilityBreakdown.total === maxSustainability
+                            ? 'text-green-600 dark:text-green-400'
+                            : sustainabilityBreakdown.total === minSustainability
+                              ? 'text-red-500'
+                              : ''
+                      }`}
+                    >
+                      {sustainabilityScores.every((s) => s === sustainabilityBreakdown.total)
+                        ? ''
+                        : sustainabilityBreakdown.total === maxSustainability
+                          ? '↑ highest'
+                          : sustainabilityBreakdown.total === minSustainability
+                            ? '↓ lowest'
+                            : ''}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Certifications */}
+              {product.certifications &&
+                product.certifications.filter((c) => !c.revoked).length > 0 && (
+                  <div className="border border-[var(--card-border)] rounded-lg p-3">
+                    <p className="text-xs font-medium text-[var(--muted)] mb-1.5 flex items-center gap-1">
+                      <ShieldCheck size={11} /> Certifications
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {product.certifications
+                        .filter((c) => !c.revoked)
+                        .map((cert) => (
+                          <span
+                            key={cert.id}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700"
+                          >
+                            <ShieldCheck size={9} />
+                            {getCertificationLabel(cert.certType)}
+                          </span>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* Timeline */}
+              <TimelineColumn events={evts} diffTypes={diffTypesPerProduct[i]} />
+            </div>
+          ),
+        )}
       </div>
 
       {/* Legend */}
@@ -209,7 +378,9 @@ export function CompareTimeline({ products, eventsByProduct }: CompareTimelinePr
           <span className="inline-block w-3 h-3 rounded-full ring-2 ring-amber-400 bg-gray-400" />
           Stage present in this product but not all others
         </span>
-        <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium">↑ better</span>
+        <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-medium">
+          ↑ better
+        </span>
         <span className="flex items-center gap-1 text-red-500 font-medium">↓ worse</span>
       </div>
     </div>

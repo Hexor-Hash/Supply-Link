@@ -59,6 +59,8 @@ mod invariants {
             &String::from_str(env, "Origin"),
             owner,
             &sigs,
+            &String::from_str(env, "other"),
+            &String::from_str(env, "general"),
         );
     }
 
@@ -405,6 +407,8 @@ mod invariants {
                     &String::from_str(&env, "Origin"),
                     &owner,
                     &0u32,
+                    &String::from_str(&env, "other"),
+                    &String::from_str(&env, "general"),
                 );
             }
 

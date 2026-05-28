@@ -80,6 +80,7 @@ export default function ProductsPage() {
 
   const [registerOpen, setRegisterOpen] = useState(false);
   const [batchOpen, setBatchOpen] = useState(false);
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
 
   // Sync search + filter to/from URL params (#50)
   const searchParams = useSearchParams();
@@ -269,6 +270,33 @@ export default function ProductsPage() {
             </Select.Content>
           </Select.Portal>
         </Select.Root>
+      </div>
+
+      {/* Category filter (#425) */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        <button
+          onClick={() => setFilterCategory(null)}
+          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
+            filterCategory === null
+              ? 'bg-violet-600 text-white border-violet-600'
+              : 'border-[var(--card-border)] text-[var(--muted)] hover:bg-[var(--muted-bg)]'
+          }`}
+        >
+          All Categories
+        </button>
+        {PRODUCT_TAXONOMY.map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => setFilterCategory(filterCategory === cat.id ? null : cat.id)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
+              filterCategory === cat.id
+                ? 'bg-violet-600 text-white border-violet-600'
+                : 'border-[var(--card-border)] text-[var(--muted)] hover:bg-[var(--muted-bg)]'
+            }`}
+          >
+            {cat.label}
+          </button>
+        ))}
       </div>
 
       {loading ? (

@@ -38,6 +38,8 @@ fn test_id_over_max_length_rejected() {
         &String::from_str(&env, "Origin"),
         &owner,
         &1,
+    );    &String::from_str(&env, "other"),
+    );    &String::from_str(&env, "general"),
     );
 }
 
@@ -51,6 +53,8 @@ fn test_name_at_max_length_accepted() {
         &String::from_str(&env, "Origin"),
         &owner,
         &1,
+    );    &String::from_str(&env, "other"),
+    );    &String::from_str(&env, "general"),
     );
 }
 
@@ -65,6 +69,8 @@ fn test_name_over_max_length_rejected() {
         &String::from_str(&env, "Origin"),
         &owner,
         &1,
+    );    &String::from_str(&env, "other"),
+    );    &String::from_str(&env, "general"),
     );
 }
 
@@ -78,6 +84,8 @@ fn test_origin_at_max_length_accepted() {
         &str_of_len(&env, 256),
         &owner,
         &1,
+    );    &String::from_str(&env, "other"),
+    );    &String::from_str(&env, "general"),
     );
 }
 
@@ -92,6 +100,8 @@ fn test_origin_over_max_length_rejected() {
         &str_of_len(&env, 257),
         &owner,
         &1,
+    );    &String::from_str(&env, "other"),
+    );    &String::from_str(&env, "general"),
     );
 }
 

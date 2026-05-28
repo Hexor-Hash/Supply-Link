@@ -136,6 +136,37 @@ pub struct Product {
     /// and can receive tracking events. `false` indicates the product has been
     /// deactivated and is read-only. Defaults to `true` on registration.
     pub active: bool,
+    /// Taxonomy category ID for this product (e.g. `"agricultural"`). (#425)
+    /// Must be a recognised category from the controlled vocabulary.
+    pub category: String,
+    /// Taxonomy subcategory ID within `category` (e.g. `"coffee"`). (#425)
+    pub subcategory: String,
+}
+
+/// A product certification issued by an authorised actor. (#428)
+///
+/// Certifications are stored as a `Vec<ProductCertification>` under
+/// [`DataKey::Certifications`] keyed by `product_id`. Each entry carries
+/// the issuer address, a string certification type from the controlled
+/// vocabulary (e.g. `"fair_trade"`, `"organic"`), and a revocation flag.
+#[contracttype]
+#[derive(Clone)]
+pub struct ProductCertification {
+    /// Stable unique identifier for this certification entry.
+    pub id: String,
+    /// ID of the product this certification belongs to.
+    pub product_id: String,
+    /// Certification type key (e.g. `"fair_trade"`, `"organic"`, `"iso_9001"`).
+    pub cert_type: String,
+    /// Stellar address of the actor who issued this certification.
+    /// Must be the product owner or an authorized actor at issuance time.
+    pub issuer: Address,
+    /// Ledger timestamp when the certification was issued.
+    pub issued_at: u64,
+    /// `true` if this certification has been revoked; `false` otherwise.
+    pub revoked: bool,
+    /// Ledger timestamp when the certification was revoked (0 if not revoked).
+    pub revoked_at: u64,
 }
 
 /// A single supply-chain event recorded against a [`Product`].
@@ -406,6 +437,8 @@ impl SupplyLinkContract {
         origin: String,
         owner: Address,
         required_signatures: u32,
+        category: String,
+        subcategory: String,
     ) -> Product {
         // Duplicate guard — must come before auth to avoid leaking state on
         // duplicate attempts and to keep counter/index consistent.
@@ -415,9 +448,11 @@ impl SupplyLinkContract {
 
         owner.require_auth();
         // Issue #311: enforce size limits.
-        assert_len(&id,     MAX_ID_LEN,     "id");
-        assert_len(&name,   MAX_NAME_LEN,   "name");
-        assert_len(&origin, MAX_ORIGIN_LEN, "origin");
+        assert_len(&id,          MAX_ID_LEN,     "id");
+        assert_len(&name,        MAX_NAME_LEN,   "name");
+        assert_len(&origin,      MAX_ORIGIN_LEN, "origin");
+        assert_len(&category,    64,             "category");
+        assert_len(&subcategory, 64,             "subcategory");
         let product = Product {
             id: id.clone(),
             name,
@@ -429,6 +464,8 @@ impl SupplyLinkContract {
             spoiled: false,
             required_signatures,
             active: true,
+            category,
+            subcategory,
         };
         env.storage()
             .persistent()
@@ -1931,6 +1968,141 @@ fn compute_stable_id(
             .persistent()
             .set(&DataKey::ActorNonce(actor.clone()), &(current_nonce + 1));
     }
+
+    /// Issue a certification for a product. (#428)
+    ///
+    /// Stores a [`ProductCertification`] entry for the given product. Only the
+    /// product owner or an authorized actor may call this function.
+    ///
+    /// # Parameters
+    /// - `product_id` — ID of the product to certify.
+    /// - `caller` — Address of the actor issuing the certification.
+    /// - `cert_id` — Caller-supplied unique identifier for this certification.
+    /// - `cert_type` — Certification type key (e.g. `"fair_trade"`, `"organic"`).
+    ///
+    /// # Authorization
+    /// Requires `caller.require_auth()`. Caller must be owner or authorized actor.
+    pub fn issue_certification(
+        env: Env,
+        product_id: String,
+        caller: Address,
+        cert_id: String,
+        cert_type: String,
+    ) -> ProductCertification {
+        let product: Product = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Product(product_id.clone()))
+            .unwrap_or_else(|| panic!("product not found"));
+
+        let is_owner = product.owner == caller;
+        let is_actor = product.authorized_actors.contains(&caller);
+        if !is_owner && !is_actor {
+            panic!("caller is not authorized");
+        }
+        caller.require_auth();
+        assert_len(&cert_id, 128, "cert_id");
+        assert_len(&cert_type, 64, "cert_type");
+
+        let cert = ProductCertification {
+            id: cert_id.clone(),
+            product_id: product_id.clone(),
+            cert_type,
+            issuer: caller,
+            issued_at: env.ledger().timestamp(),
+            revoked: false,
+            revoked_at: 0,
+        };
+
+        let mut certs: Vec<ProductCertification> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Certifications(product_id.clone()))
+            .unwrap_or_else(|| Vec::new(&env));
+        certs.push_back(cert.clone());
+        env.storage()
+            .persistent()
+            .set(&DataKey::Certifications(product_id.clone()), &certs);
+
+        env.events().publish(
+            (Symbol::new(&env, "certification_issued"), product_id),
+            cert.clone(),
+        );
+
+        cert
+    }
+
+    /// Revoke a previously issued certification. (#428)
+    ///
+    /// Sets the `revoked` flag on the matching certification entry.
+    /// Only the product owner may revoke a certification.
+    ///
+    /// # Parameters
+    /// - `product_id` — ID of the product whose certification to revoke.
+    /// - `caller` — Must be the product owner.
+    /// - `cert_id` — ID of the certification to revoke.
+    pub fn revoke_certification(
+        env: Env,
+        product_id: String,
+        caller: Address,
+        cert_id: String,
+    ) -> bool {
+        let product: Product = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Product(product_id.clone()))
+            .unwrap_or_else(|| panic!("product not found"));
+
+        if product.owner != caller {
+            panic!("only product owner can revoke certifications");
+        }
+        caller.require_auth();
+
+        let mut certs: Vec<ProductCertification> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Certifications(product_id.clone()))
+            .unwrap_or_else(|| Vec::new(&env));
+
+        let mut found = false;
+        let mut updated: Vec<ProductCertification> = Vec::new(&env);
+        for cert in certs.iter() {
+            if cert.id == cert_id {
+                let revoked_cert = ProductCertification {
+                    revoked: true,
+                    revoked_at: env.ledger().timestamp(),
+                    ..cert.clone()
+                };
+                updated.push_back(revoked_cert.clone());
+                env.events().publish(
+                    (Symbol::new(&env, "certification_revoked"), product_id.clone()),
+                    revoked_cert,
+                );
+                found = true;
+            } else {
+                updated.push_back(cert.clone());
+            }
+        }
+
+        if found {
+            env.storage()
+                .persistent()
+                .set(&DataKey::Certifications(product_id), &updated);
+        }
+
+        found
+    }
+
+    /// Return all certifications (active and revoked) for a product. (#428)
+    pub fn list_certifications(
+        env: Env,
+        product_id: String,
+    ) -> Vec<ProductCertification> {
+        env.storage()
+            .persistent()
+            .get(&DataKey::Certifications(product_id))
+            .unwrap_or_else(|| Vec::new(&env))
+    }
 }
 
 #[cfg(test)]
@@ -1957,7 +2129,7 @@ mod rejection_reason_tests {
         env.mock_all_auths();
 
         // Register product with multi-sig
-        client.register_product(&product_id, &name, &origin, &owner, &2);
+        client.register_product(&product_id, &name, &origin, &owner, &2, &String::from_str(&env, "other"), &String::from_str(&env, "general"));
         client.add_authorized_actor(&product_id, &actor, &0);
 
         // Add pending event
@@ -1995,7 +2167,7 @@ mod rejection_reason_tests {
         env.mock_all_auths();
 
         // Register product with multi-sig
-        client.register_product(&product_id, &name, &origin, &owner, &2);
+        client.register_product(&product_id, &name, &origin, &owner, &2, &String::from_str(&env, "other"), &String::from_str(&env, "general"));
         client.add_authorized_actor(&product_id, &actor, &0);
 
         // Add pending event
@@ -2028,7 +2200,7 @@ mod rejection_reason_tests {
         env.mock_all_auths();
 
         // Register product with multi-sig
-        client.register_product(&product_id, &name, &origin, &owner, &2);
+        client.register_product(&product_id, &name, &origin, &owner, &2, &String::from_str(&env, "other"), &String::from_str(&env, "general"));
         client.add_authorized_actor(&product_id, &actor, &0);
 
         // Add pending event
@@ -2059,7 +2231,7 @@ mod rejection_reason_tests {
         env.mock_all_auths();
 
         // Register product with multi-sig
-        client.register_product(&product_id, &name, &origin, &owner, &2);
+        client.register_product(&product_id, &name, &origin, &owner, &2, &String::from_str(&env, "other"), &String::from_str(&env, "general"));
         client.add_authorized_actor(&product_id, &actor, &0);
 
         // Add pending event

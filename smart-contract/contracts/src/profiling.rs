@@ -58,6 +58,8 @@ mod profiling {
             &String::from_str(&env, "Ethiopia"),
             &owner,
             &0u32,
+            &String::from_str(&env, "other"),
+            &String::from_str(&env, "general"),
         );
         let cpu = env.budget().cpu_instruction_count();
         let mem = env.budget().memory_bytes_used();
@@ -83,6 +85,8 @@ mod profiling {
                 &String::from_str(&env, "Origin"),
                 &owner,
                 &0u32,
+                &String::from_str(&env, "other"),
+                &String::from_str(&env, "general"),
             );
         }
 
@@ -116,6 +120,8 @@ mod profiling {
             &String::from_str(&env, "Origin"),
             &owner,
             &0u32,
+            &String::from_str(&env, "other"),
+            &String::from_str(&env, "general"),
         );
 
         env.budget().reset_default();
@@ -150,6 +156,8 @@ mod profiling {
             &String::from_str(&env, "Origin"),
             &owner,
             &0u32,
+            &String::from_str(&env, "other"),
+            &String::from_str(&env, "general"),
         );
 
         for i in 0..N_EVENTS {
@@ -192,6 +200,8 @@ mod profiling {
             &String::from_str(&env, "Origin"),
             &owner,
             &0u32,
+            &String::from_str(&env, "other"),
+            &String::from_str(&env, "general"),
         );
 
         // Measure at 10, 25, and 50 events to show linear growth
@@ -235,6 +245,8 @@ mod profiling {
             &String::from_str(&env, "Origin"),
             &owner,
             &0u32,
+            &String::from_str(&env, "other"),
+            &String::from_str(&env, "general"),
         );
 
         env.budget().reset_default();
@@ -261,6 +273,8 @@ mod profiling {
                 &String::from_str(&env, "Origin"),
                 &owner,
                 &0u32,
+                &String::from_str(&env, "other"),
+                &String::from_str(&env, "general"),
             );
         }
 

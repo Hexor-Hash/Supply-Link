@@ -69,6 +69,8 @@ mod stable_id_tests {
             &String::from_str(&env, "Origin"),
             &owner,
             &2,
+        );    &String::from_str(&env, "other"),
+        );    &String::from_str(&env, "general"),
         );
 
         // Add 3 events with IDs: 0, 1, 2
@@ -183,6 +185,8 @@ mod stable_id_tests {
             &String::from_str(&env, "Origin"),
             &owner,
             &3,
+        );    &String::from_str(&env, "other"),
+        );    &String::from_str(&env, "general"),
         );
 
         // Add 3 events: IDs 0, 1, 2
@@ -237,6 +241,8 @@ mod stable_id_tests {
             &String::from_str(&env, "Origin"),
             &owner,
             &2,
+        );    &String::from_str(&env, "other"),
+        );    &String::from_str(&env, "general"),
         );
 
         // Add 3 events
@@ -293,6 +299,8 @@ mod stable_id_tests {
             &String::from_str(&env, "Origin"),
             &owner,
             &2,
+        );    &String::from_str(&env, "other"),
+        );    &String::from_str(&env, "general"),
         );
 
         // Sequence: add → reject → add → approve

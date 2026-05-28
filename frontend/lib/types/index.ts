@@ -56,6 +56,12 @@ export interface Batch {
   pending?: boolean;
   /** Off-chain image URL stored in product metadata (#112) */
   imageUrl?: string;
+  /** Taxonomy category ID (#425) */
+  category?: string;
+  /** Taxonomy subcategory ID (#425) */
+  subcategory?: string;
+  /** On-chain certifications attached to this product (#428) */
+  certifications?: Certification[];
 }
 
 export interface TrackingEvent {

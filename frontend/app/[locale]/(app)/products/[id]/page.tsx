@@ -1,14 +1,17 @@
-import { notFound } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
-import { getProductById, getEventsByProductId } from "@/lib/mock/products";
-import ProductQRCode from "@/components/products/ProductQRCode";
-import ProductActions from "@/components/products/ProductActions";
-import { AuthorizedActorsPanel } from "@/components/products/AuthorizedActorsPanel";
-import { ShareButton } from "@/components/ui/ShareButton";
-import { DownloadBadgeButton } from "@/components/products/DownloadBadgeButton";
-import { DownloadCertificateButton } from "@/components/products/DownloadCertificateButton";
-import { LazyEventMap } from "@/components/lazy/LazyEventMap";
+import { notFound } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
+import { getProductById, getEventsByProductId } from '@/lib/mock/products';
+import ProductQRCode from '@/components/products/ProductQRCode';
+import ProductActions from '@/components/products/ProductActions';
+import { AuthorizedActorsPanel } from '@/components/products/AuthorizedActorsPanel';
+import { ShareButton } from '@/components/ui/ShareButton';
+import { DownloadBadgeButton } from '@/components/products/DownloadBadgeButton';
+import { DownloadCertificateButton } from '@/components/products/DownloadCertificateButton';
+import { LazyEventMap } from '@/components/lazy/LazyEventMap';
+import { SustainabilityBadge } from '@/components/products/SustainabilityBadge';
+import { CertificationsPanel } from '@/components/products/CertificationBadge';
+import { getCategoryLabel, getSubcategoryLabel } from '@/lib/taxonomy';
 
 interface Props {
   params: { id: string };
@@ -23,7 +26,10 @@ export default function ProductDetailPage({ params }: Props) {
 
   return (
     <main className="p-8 max-w-3xl mx-auto">
-      <Link href="/products" className="text-sm text-[var(--muted)] hover:underline mb-6 inline-block">
+      <Link
+        href="/products"
+        className="text-sm text-[var(--muted)] hover:underline mb-6 inline-block"
+      >
         ← Back to Products
       </Link>
 
@@ -33,7 +39,9 @@ export default function ProductDetailPage({ params }: Props) {
             <h1 className="text-2xl font-bold text-[var(--foreground)]">{p.name}</h1>
             <ShareButton productName={p.name} productId={p.id} />
           </div>
-          <p className="text-[var(--muted)] mt-1">Product ID: <span className="font-mono text-sm">{p.id}</span></p>
+          <p className="text-[var(--muted)] mt-1">
+            Product ID: <span className="font-mono text-sm">{p.id}</span>
+          </p>
         </div>
         <ProductQRCode productId={p.id} size={160} />
       </div>
@@ -56,9 +64,25 @@ export default function ProductDetailPage({ params }: Props) {
             <dt className="text-[var(--muted)]">Registered</dt>
             <dd className="font-medium mt-0.5 text-[var(--foreground)]">{registeredAt}</dd>
           </div>
+          {p.category && (
+            <div>
+              <dt className="text-[var(--muted)]">Category</dt>
+              <dd className="font-medium mt-0.5 text-[var(--foreground)]">
+                {getCategoryLabel(p.category)}
+                {p.subcategory && (
+                  <span className="text-[var(--muted)]">
+                    {' '}
+                    › {getSubcategoryLabel(p.category, p.subcategory)}
+                  </span>
+                )}
+              </dd>
+            </div>
+          )}
           <div className="sm:col-span-2">
             <dt className="text-[var(--muted)]">Current Owner</dt>
-            <dd className="font-mono text-xs mt-0.5 break-all text-[var(--foreground)]">{p.owner}</dd>
+            <dd className="font-mono text-xs mt-0.5 break-all text-[var(--foreground)]">
+              {p.owner}
+            </dd>
           </div>
         </dl>
       </section>
@@ -79,7 +103,9 @@ export default function ProductDetailPage({ params }: Props) {
             {p.ownershipHistory.map((record, i) => (
               <li key={i} className="ml-4">
                 <span className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full bg-[var(--primary)] border-2 border-[var(--background)]" />
-                <p className="font-mono text-xs break-all text-[var(--foreground)]">{record.owner}</p>
+                <p className="font-mono text-xs break-all text-[var(--foreground)]">
+                  {record.owner}
+                </p>
                 <p className="text-xs text-[var(--muted)] mt-0.5">
                   {new Date(record.transferredAt).toLocaleString()}
                 </p>
@@ -87,6 +113,23 @@ export default function ProductDetailPage({ params }: Props) {
             ))}
           </ol>
         )}
+      </section>
+
+      {/* Sustainability Score (#426) */}
+      <section className="border border-[var(--card-border)] bg-[var(--card)] rounded-xl p-6 mb-6">
+        <h2 className="text-base font-semibold mb-4 text-[var(--foreground)]">Sustainability</h2>
+        <SustainabilityBadge events={events} />
+        <p className="text-xs text-[var(--muted)] mt-3">
+          Score is derived from event metadata fields: <code>carbon_footprint</code>,{' '}
+          <code>certification_level</code>, <code>sustainable_practices</code>,{' '}
+          <code>renewable_energy_pct</code>, and <code>recyclable_packaging</code>.
+        </p>
+      </section>
+
+      {/* Certifications (#428) */}
+      <section className="border border-[var(--card-border)] bg-[var(--card)] rounded-xl p-6 mb-6">
+        <h2 className="text-base font-semibold mb-4 text-[var(--foreground)]">Certifications</h2>
+        <CertificationsPanel certifications={p.certifications ?? []} productId={p.id} />
       </section>
 
       {/* Event Map */}

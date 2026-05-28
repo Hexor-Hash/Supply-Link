@@ -150,6 +150,8 @@ mod integration {
             &origin,
             &owner,
             &required_sigs,
+            &String::from_str(&env, "other"),
+            &String::from_str(&env, "general"),
         );
 
         // Verify
@@ -197,6 +199,8 @@ mod integration {
             &String::from_str(&env, "Origin"),
             &owner,
             &0u32,
+            &String::from_str(&env, "other"),
+            &String::from_str(&env, "general"),
         );
 
         // Add tracking event
@@ -258,6 +262,8 @@ mod integration {
             &String::from_str(&env, "Origin"),
             &owner,
             &0u32,
+            &String::from_str(&env, "other"),
+            &String::from_str(&env, "general"),
         );
 
         // Add multiple events
@@ -317,6 +323,8 @@ mod integration {
             &String::from_str(&env, "Origin"),
             &owner,
             &0u32,
+            &String::from_str(&env, "other"),
+            &String::from_str(&env, "general"),
         );
 
         // Transfer ownership: nonce = 0 initially
@@ -371,6 +379,8 @@ mod integration {
             &String::from_str(&env, "Factory A"),
             &owner,
             &0u32,
+            &String::from_str(&env, "other"),
+            &String::from_str(&env, "general"),
         );
 
         // 2. Add multiple events (owner)

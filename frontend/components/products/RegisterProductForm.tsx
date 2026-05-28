@@ -60,6 +60,7 @@ export function RegisterProductForm({ open, onOpenChange }: Props) {
     register,
     handleSubmit,
     setValue,
+    watch,
     reset,
     watch,
     formState: { errors },
@@ -101,6 +102,8 @@ export function RegisterProductForm({ open, onOpenChange }: Props) {
         active: true,
         authorizedActors: [walletAddress],
         imageUrl,
+        category: values.category,
+        subcategory: values.subcategory,
       });
 
       toast.dismiss(toastId);
@@ -231,6 +234,47 @@ export function RegisterProductForm({ open, onOpenChange }: Props) {
                 placeholder="Additional details about the product…"
                 className="px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"
               />
+            </div>
+
+            {/* Category Taxonomy (#425) */}
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">Category</label>
+              <select
+                {...register('category')}
+                onChange={(e) => {
+                  setValue('category', e.target.value);
+                  setValue('subcategory', '');
+                }}
+                className="px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
+              >
+                <option value="">Select a category…</option>
+                {PRODUCT_TAXONOMY.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.label}
+                  </option>
+                ))}
+              </select>
+              {errors.category && <p className="text-xs text-red-500">{errors.category.message}</p>}
+            </div>
+
+            {/* Subcategory Taxonomy (#425) */}
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium">Subcategory</label>
+              <select
+                {...register('subcategory')}
+                disabled={!selectedCategory}
+                className="px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-50"
+              >
+                <option value="">Select a subcategory…</option>
+                {subcategories.map((sub) => (
+                  <option key={sub.id} value={sub.id}>
+                    {sub.label}
+                  </option>
+                ))}
+              </select>
+              {errors.subcategory && (
+                <p className="text-xs text-red-500">{errors.subcategory.message}</p>
+              )}
             </div>
 
             {/* Image Upload (#112) */}
