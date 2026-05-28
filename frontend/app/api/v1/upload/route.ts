@@ -2,13 +2,13 @@
  * Hardened file upload route.
  *
  * Hardening layers (closes #305):
- *  1. MIME type allowlist (unchanged)
- *  2. File size limit (unchanged)
- *  3. Magic-byte content verification (new)
- *  4. Safe filename / path normalization (new)
- *  5. Per-actor upload quota (new)
- *  6. Rejection audit log (new)
- *  7. Async malware scan + image processing via job queue (pre-existing, wired correctly)
+ *  1. MIME type allowlist
+ *  2. File size limit
+ *  3. Magic-byte content verification
+ *  4. Safe filename / path normalization
+ *  5. Per-actor upload quota
+ *  6. Rejection audit log
+ *  7. Async malware scan + image processing via job queue
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -18,6 +18,11 @@ import { apiError, withCorrelationId, ErrorCode } from '@/lib/api/errors';
 import { applyRateLimit, RATE_LIMIT_PRESETS, getClientIp } from '@/lib/api/rateLimit';
 import { requirePolicy } from '@/lib/api/policy';
 import { AuditEmitter } from '@/lib/api/audit';
+import {
+  handleValidationError,
+  RequestValidationError,
+  ValidationTaxonomy,
+} from '@/lib/api/validation';
 import {
   verifyMagicBytes,
   safePath,
@@ -45,100 +50,139 @@ async function handler(req: NextRequest) {
   const actorId = getClientIp(req);
 
   try {
-    formData = await req.formData();
-  } catch {
-    await logUploadRejection({ ts: Date.now(), actorId, filename: '', reason: 'malformed_multipart' });
-    return withCors(req, apiError(req, 400, ErrorCode.INVALID_PAYLOAD, 'Malformed multipart body'));
-  }
+    let formData: FormData;
+    try {
+      // Enforce multipart/form-data content type before attempting to parse
+      const contentType = req.headers.get('content-type') ?? '';
+      if (!contentType.includes('multipart/form-data')) {
+        throw new RequestValidationError(
+          415,
+          ErrorCode.UNSUPPORTED_CONTENT_TYPE,
+          'Expected multipart/form-data request body',
+          ValidationTaxonomy.UNSUPPORTED_CONTENT_TYPE,
+        );
+      }
+      formData = await req.formData();
+    } catch (error) {
+      const validation = handleValidationError(req, error);
+      if (validation) {
+        await logUploadRejection({
+          ts: Date.now(),
+          actorId,
+          filename: '',
+          reason: 'unsupported_content_type',
+        });
+        return withCors(req, validation);
+      }
+      await logUploadRejection({
+        ts: Date.now(),
+        actorId,
+        filename: '',
+        reason: 'malformed_multipart',
+      });
+      return withCors(
+        req,
+        apiError(req, 400, ErrorCode.INVALID_PAYLOAD, 'Malformed multipart body'),
+      );
+    }
 
-  const file = formData.get('file') as File | null;
-  const productId = (formData.get('productId') as string | null) ?? '';
-
-  try {
-    const formData = await req.formData();
     const file = formData.get('file') as File | null;
-    const productId = formData.get('productId') as string | null;
+    const productId = (formData.get('productId') as string | null) ?? '';
 
+    if (!file) {
       resultStatus = 400;
-      resultBody = { error: ErrorCode.MISSING_FIELDS, message: 'No file provided' };
+      resultBody = { error: ErrorCode.VALIDATION_ERROR, message: 'No file provided' };
       return withCors(req, apiError(req, resultStatus, resultBody.error, resultBody.message));
     }
-  // ── MIME allowlist ─────────────────────────────────────────────────────────
-  if (!ALLOWED_TYPES.includes(file.type)) {
-    await logUploadRejection({ ts: Date.now(), actorId, filename: file.name, reason: 'invalid_mime' });
-    return withCors(
-      req,
-      apiError(req, 400, ErrorCode.VALIDATION_ERROR, 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF'),
-    );
-  }
 
-  // ── Size limit ─────────────────────────────────────────────────────────────
-  if (file.size > MAX_SIZE_BYTES) {
-    await logUploadRejection({ ts: Date.now(), actorId, filename: file.name, reason: 'too_large' });
-    return withCors(
-      req,
-      apiError(req, 400, ErrorCode.VALIDATION_ERROR, 'File too large. Maximum size is 5 MB'),
-    );
-  }
-
-  // ── Magic-byte content verification ───────────────────────────────────────
-  const headerBytes = new Uint8Array(await file.slice(0, 8).arrayBuffer());
-  if (!verifyMagicBytes(headerBytes, file.type)) {
-    await logUploadRejection({ ts: Date.now(), actorId, filename: file.name, reason: 'magic_mismatch' });
-    return withCors(
-      req,
-      apiError(req, 400, ErrorCode.VALIDATION_ERROR, 'File content does not match declared type'),
-    );
-  }
-
-  // ── Per-actor quota ────────────────────────────────────────────────────────
-  const quota = await checkAndIncrementQuota(actorId);
-  if (!quota.allowed) {
-    await logUploadRejection({ ts: Date.now(), actorId, filename: file.name, reason: 'quota_exceeded' });
-    return withCors(
-      req,
-      apiError(req, 429, ErrorCode.RATE_LIMITED, 'Upload quota exceeded. Try again later.'),
-    );
-  } catch (error) {
-    const validation = handleValidationError(req, error);
-    if (validation) {
-      const reason = validation.status === 415 ? 'unsupported_content_type' : 'malformed_multipart';
-      await logUploadRejection({ ts: Date.now(), actorId, filename: '', reason });
-      return withCors(req, validation);
+    // ── MIME allowlist ───────────────────────────────────────────────────────
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      await logUploadRejection({
+        ts: Date.now(),
+        actorId,
+        filename: file.name,
+        reason: 'invalid_mime',
+      });
+      return withCors(
+        req,
+        apiError(
+          req,
+          400,
+          ErrorCode.VALIDATION_ERROR,
+          'Invalid file type. Allowed: JPEG, PNG, WebP, GIF',
+        ),
+      );
     }
 
-    console.error('[upload POST]', error);
-    return withCors(req, apiError(req, 500, ErrorCode.INTERNAL_ERROR, 'Failed to upload file'));
-  }
+    // ── Size limit ───────────────────────────────────────────────────────────
+    if (file.size > MAX_SIZE_BYTES) {
+      await logUploadRejection({
+        ts: Date.now(),
+        actorId,
+        filename: file.name,
+        reason: 'too_large',
+      });
+      return withCors(
+        req,
+        apiError(req, 400, ErrorCode.VALIDATION_ERROR, 'File too large. Maximum size is 5 MB'),
+      );
+    }
 
-  // ── Safe path ──────────────────────────────────────────────────────────────
-  const storagePath = safePath(actorId, file.name);
+    // ── Magic-byte content verification ─────────────────────────────────────
+    const headerBytes = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+    if (!verifyMagicBytes(headerBytes, file.type)) {
+      await logUploadRejection({
+        ts: Date.now(),
+        actorId,
+        filename: file.name,
+        reason: 'magic_mismatch',
+      });
+      return withCors(
+        req,
+        apiError(req, 400, ErrorCode.VALIDATION_ERROR, 'File content does not match declared type'),
+      );
+    }
 
-  // ── Store ──────────────────────────────────────────────────────────────────
-  const blob = await put(storagePath, file, { access: 'public' });
+    // ── Per-actor quota ──────────────────────────────────────────────────────
+    const quota = await checkAndIncrementQuota(actorId);
+    if (!quota.allowed) {
+      await logUploadRejection({
+        ts: Date.now(),
+        actorId,
+        filename: file.name,
+        reason: 'quota_exceeded',
+      });
+      return withCors(
+        req,
+        apiError(req, 429, ErrorCode.RATE_LIMITED, 'Upload quota exceeded. Try again later.'),
+      );
+    }
 
-  // ── Async post-upload jobs ─────────────────────────────────────────────────
-  const [scanJob, processJob] = await Promise.all([
-    enqueue('scan.malware', { url: blob.url }),
-    enqueue('image.process', { url: blob.url, productId }),
-  ]);
+    // ── Safe path ────────────────────────────────────────────────────────────
+    const storagePath = safePath(actorId, file.name);
 
-  return respond(
-    { url: blob.url, jobs: { scan: scanJob.id, process: processJob.id } },
-    { status: 201 },
-  );
+    // ── Store ────────────────────────────────────────────────────────────────
+    const blob = await put(storagePath, file, { access: 'public' });
+
+    // ── Async post-upload jobs ───────────────────────────────────────────────
+    const [scanJob, processJob] = await Promise.all([
+      enqueue('scan.malware', { url: blob.url }),
+      enqueue('image.process', { url: blob.url, productId }),
+    ]);
+
+    resultStatus = 201;
+    resultBody = { url: blob.url, jobs: { scan: scanJob.id, process: processJob.id } };
+    return respond(resultBody, { status: 201 });
   } catch (error) {
     console.error('[upload POST]', error);
     resultStatus = 500;
     resultBody = { error: ErrorCode.INTERNAL_ERROR, message: 'Failed to upload file' };
     return withCors(req, apiError(req, resultStatus, resultBody.error, resultBody.message));
   } finally {
-    // Audit log the upload operation
     AuditEmitter.emit(req, 'file.upload', resultStatus, undefined, resultBody, {
       filename: resultBody?.url ? resultBody.url.split('/').pop() : undefined,
     });
   }
 }
 
-export const POST = requirePolicy('partner', handler);
-
+export const POST = requirePolicy('public', handler);

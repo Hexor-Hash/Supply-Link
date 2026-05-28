@@ -114,6 +114,57 @@
     "inactive": "Inactive",
     "verifiedBadge": "Verified on Stellar · View Contract",
     "journey": "Product Journey",
-    "scanAnother": "Scan Another QR"
+    "scanAnother": "Scan Another QR",
+    "communityRatings": "Community Ratings",
+    "noEvents": "No events recorded for this product yet.",
+    "eventTypes": {
+      "HARVEST": "Harvest",
+      "PROCESSING": "Processing",
+      "SHIPPING": "Shipping",
+      "RETAIL": "Retail"
+    }
+  },
+  "ratings": {
+    "count": "{count, plural, =0 {No ratings yet} one {# rating} other {# ratings}}",
+    "leaveRating": "Leave a rating",
+    "commentPlaceholder": "Add a comment (optional, max 500 chars)",
+    "submitButton": "Submit Rating",
+    "submitting": "Submitting...",
+    "connectPrompt": "Connect your wallet to leave a rating",
+    "connectWalletFirst": "Please connect your wallet first",
+    "selectRating": "Please select a rating",
+    "submitSuccess": "Rating submitted successfully",
+    "submitError": "Failed to submit rating"
+  },
+  "errors": {
+    "PRODUCT_NOT_FOUND": "The requested product does not exist on-chain.",
+    "NOT_AUTHORIZED": "You are not authorized to perform this action on this product.",
+    "APPROVER_NOT_AUTHORIZED": "The approver is not the product owner or an authorized actor.",
+    "OWNER_ONLY": "Only the product owner can perform this action.",
+    "NO_PENDING_EVENTS": "There are no pending events in the approval queue for this product.",
+    "PENDING_EVENT_EXPIRED": "This pending event has expired and can no longer be approved.",
+    "INVALID_NONCE": "The supplied nonce does not match the expected value. Refresh and retry.",
+    "UNKNOWN": "An unexpected contract error occurred. Please try again."
+  },
+  "privateMetadata": {
+    "title": "Private metadata",
+    "locked": "This metadata is private",
+    "lockedHint": "Only authorized parties holding the decryption key can view it. Provenance is still proven on-chain.",
+    "onChainCommitment": "On-chain commitment",
+    "keyPlaceholder": "Paste the decryption key",
+    "keyRequired": "A decryption key is required.",
+    "decrypt": "Decrypt",
+    "decrypting": "Decrypting…",
+    "payloadUnavailable": "The encrypted payload is unavailable.",
+    "commitmentMismatch": "The off-chain payload does not match the on-chain commitment.",
+    "decryptFailed": "Decryption failed. Check that the key is correct.",
+    "verified": "Verified against on-chain commitment",
+    "markPrivate": "Mark metadata as private",
+    "markPrivateHint": "Encrypts the metadata in your browser; only a hash commitment is stored on-chain.",
+    "submitSuccess": "Private event added",
+    "saveKeyTitle": "Save your decryption key now",
+    "saveKeyWarning": "This key is shown only once and is never sent to the server. Anyone with it can read this metadata; without it the data is unrecoverable.",
+    "generatedKey": "Decryption key",
+    "dismiss": "Done"
   }
 }

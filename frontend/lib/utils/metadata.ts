@@ -1,14 +1,35 @@
-import { z } from "zod";
+import { z } from 'zod';
+
+export {
+  eventMetadataSchemas,
+  validateEventMetadata,
+  harvestMetadataSchema,
+  processingMetadataSchema,
+  shippingMetadataSchema,
+  retailMetadataSchema,
+} from '@/lib/api/eventMetadataSchemas';
+
+export type {
+  EventMetadata,
+  HarvestMetadata,
+  ProcessingMetadata,
+  ShippingMetadata,
+  RetailMetadata,
+} from '@/lib/api/eventMetadataSchemas';
 
 export const metadataSchema = z.record(z.string(), z.unknown());
 
-export function validateMetadata(raw: string): { valid: boolean; data?: Record<string, unknown>; error?: string } {
+export function validateMetadata(raw: string): {
+  valid: boolean;
+  data?: Record<string, unknown>;
+  error?: string;
+} {
   try {
     const parsed = JSON.parse(raw);
     const result = metadataSchema.safeParse(parsed);
     if (result.success) return { valid: true, data: result.data };
     return { valid: false, error: result.error.message };
   } catch {
-    return { valid: false, error: "Invalid JSON" };
+    return { valid: false, error: 'Invalid JSON' };
   }
 }

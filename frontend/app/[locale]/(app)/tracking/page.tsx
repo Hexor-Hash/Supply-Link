@@ -1,21 +1,22 @@
-"use client";
+'use client';
 
-import { useState, type ChangeEvent } from "react";
-import { Plus, List, BarChart2, RefreshCw, Download } from "lucide-react";
-import { exportToCSV, exportToJSON } from "@/lib/utils/export";
-import { MOCK_PRODUCTS } from "@/lib/mock/products";
-import type { TrackingEvent } from "@/lib/types";
-import { useEvents } from "@/lib/hooks/useEvents";
-import { EventTimeline } from "@/components/tracking/EventTimeline";
-import { EventTimelineSkeleton } from "@/components/tracking/EventTimelineSkeleton";
-import { AddEventModal } from "@/components/tracking/AddEventModal";
-import { TimelineChart } from "@/components/tracking/TimelineChart";
-import { LazyEventMap } from "@/components/lazy/LazyEventMap";
+import { useState, type ChangeEvent } from 'react';
+import { Plus, List, BarChart2, RefreshCw, Download, Map } from 'lucide-react';
+import { exportToCSV, exportToJSON } from '@/lib/utils/export';
+import { MOCK_PRODUCTS } from '@/lib/mock/products';
+import type { TrackingEvent } from '@/lib/types';
+import { useEvents } from '@/lib/hooks/useEvents';
+import { EventTimeline } from '@/components/tracking/EventTimeline';
+import { EventTimelineSkeleton } from '@/components/tracking/EventTimelineSkeleton';
+import { AddEventModal } from '@/components/tracking/AddEventModal';
+import { TimelineChart } from '@/components/tracking/TimelineChart';
+import { LazyEventMap } from '@/components/lazy/LazyEventMap';
 
 export default function TrackingPage() {
-  const [selectedId, setSelectedId] = useState(MOCK_PRODUCTS[0]?.id ?? "");
+  const [selectedId, setSelectedId] = useState(MOCK_PRODUCTS[0]?.id ?? '');
   const [showModal, setShowModal] = useState(false);
-  const [view, setView] = useState<"list" | "chart" | "map">("list");
+  const [view, setView] = useState<'list' | 'chart' | 'map'>('list');
+  const [highlightedEvent, setHighlightedEvent] = useState<TrackingEvent | null>(null);
 
   const { events: allEvents, loading, error, refresh, addEventOptimistic } = useEvents();
 
@@ -28,7 +29,7 @@ export default function TrackingPage() {
         // Replace with real Soroban contract call
         await new Promise((r) => setTimeout(r, 1000));
       },
-      (msg) => console.error("Add event failed:", msg)
+      (msg) => console.error('Add event failed:', msg),
     );
   }
 
@@ -102,8 +103,10 @@ export default function TrackingPage() {
             <p className="text-sm font-medium text-[var(--foreground)]">{selectedProduct.name}</p>
             <p className="text-xs text-[var(--muted)]">Origin: {selectedProduct.origin}</p>
           </div>
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${selectedProduct.active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-            {selectedProduct.active ? "Active" : "Inactive"}
+          <span
+            className={`text-xs px-2 py-0.5 rounded-full font-medium ${selectedProduct.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
+          >
+            {selectedProduct.active ? 'Active' : 'Inactive'}
           </span>
         </div>
       )}
@@ -113,26 +116,28 @@ export default function TrackingPage() {
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-sm font-semibold text-[var(--foreground)]">
             Event History
-            {!loading && <span className="ml-2 text-[var(--muted)] font-normal">({events.length})</span>}
+            {!loading && (
+              <span className="ml-2 text-[var(--muted)] font-normal">({events.length})</span>
+            )}
           </h2>
           <div className="flex items-center gap-1 border border-[var(--card-border)] rounded-lg p-0.5">
             <button
-              onClick={() => setView("list")}
-              className={`p-1.5 rounded-md transition-colors ${view === "list" ? "bg-violet-600 text-white" : "text-[var(--muted)] hover:text-[var(--foreground)]"}`}
+              onClick={() => setView('list')}
+              className={`p-1.5 rounded-md transition-colors ${view === 'list' ? 'bg-violet-600 text-white' : 'text-[var(--muted)] hover:text-[var(--foreground)]'}`}
               title="List view"
             >
               <List size={14} />
             </button>
             <button
-              onClick={() => setView("chart")}
-              className={`p-1.5 rounded-md transition-colors ${view === "chart" ? "bg-violet-600 text-white" : "text-[var(--muted)] hover:text-[var(--foreground)]"}`}
+              onClick={() => setView('chart')}
+              className={`p-1.5 rounded-md transition-colors ${view === 'chart' ? 'bg-violet-600 text-white' : 'text-[var(--muted)] hover:text-[var(--foreground)]'}`}
               title="Chart view"
             >
               <BarChart2 size={14} />
             </button>
             <button
-              onClick={() => setView("map")}
-              className={`p-1.5 rounded-md transition-colors ${view === "map" ? "bg-violet-600 text-white" : "text-[var(--muted)] hover:text-[var(--foreground)]"}`}
+              onClick={() => setView('map')}
+              className={`p-1.5 rounded-md transition-colors ${view === 'map' ? 'bg-violet-600 text-white' : 'text-[var(--muted)] hover:text-[var(--foreground)]'}`}
               title="Map view"
             >
               <Map size={14} />
@@ -141,12 +146,20 @@ export default function TrackingPage() {
         </div>
         {loading ? (
           <EventTimelineSkeleton />
-        ) : view === "list" ? (
-          <EventTimeline events={events} />
-        ) : view === "chart" ? (
+        ) : view === 'list' ? (
+          <EventTimeline
+            events={events}
+            highlightedEvent={highlightedEvent}
+            onSelectEvent={setHighlightedEvent}
+          />
+        ) : view === 'chart' ? (
           <TimelineChart events={events} />
         ) : (
-          <LazyEventMap events={events} />
+          <LazyEventMap
+            events={events}
+            highlightedEvent={highlightedEvent}
+            onSelectEvent={setHighlightedEvent}
+          />
         )}
       </div>
 

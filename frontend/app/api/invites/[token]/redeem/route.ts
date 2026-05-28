@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
-import { kvStore } from "@/lib/kv";
-import { withCors, handleOptions } from "@/lib/api/cors";
+import { NextRequest, NextResponse } from 'next/server';
+import { kvStore } from '@/lib/kv';
+import { withCors, handleOptions } from '@/lib/api/cors';
+import type { InviteRecord } from '../../route';
 
-export const runtime = "nodejs";
+export const runtime = 'nodejs';
 
-const TTL_REMAINING = 60 * 60 * 24; // keep the used marker for 24 h so re-use returns 410
+const TTL_USED_MARKER = 60 * 60 * 24; // keep used marker 24 h
 
 interface Params {
   params: Promise<{ token: string }>;
@@ -20,17 +21,35 @@ export async function POST(req: NextRequest, { params }: Params) {
   const raw = await kvStore.get(key);
 
   if (!raw) {
-    return withCors(req, NextResponse.json({ error: "Invalid or expired token" }, { status: 404 }));
+    return withCors(req, NextResponse.json({ error: 'Invalid or expired token' }, { status: 404 }));
   }
 
-  const data = JSON.parse(raw) as { productId: string; used: boolean };
+  const data = JSON.parse(raw) as InviteRecord;
+
+  if (data.revoked) {
+    return withCors(
+      req,
+      NextResponse.json({ error: 'Invitation has been revoked' }, { status: 410 }),
+    );
+  }
 
   if (data.used) {
-    return withCors(req, NextResponse.json({ error: "Invitation already used" }, { status: 410 }));
+    return withCors(req, NextResponse.json({ error: 'Invitation already used' }, { status: 410 }));
   }
 
-  // Mark as used (keep entry so re-use returns 410 instead of 404)
-  await kvStore.set(key, JSON.stringify({ ...data, used: true }), TTL_REMAINING);
+  // Bind wallet address on redemption
+  const body = await req.json().catch(() => ({}));
+  const walletAddress: string | undefined = body?.walletAddress;
 
-  return withCors(req, NextResponse.json({ productId: data.productId }));
+  const updated: InviteRecord = {
+    ...data,
+    used: true,
+    redeemedBy: walletAddress,
+  };
+  await kvStore.set(key, JSON.stringify(updated), TTL_USED_MARKER);
+
+  return withCors(
+    req,
+    NextResponse.json({ productId: data.productId, role: data.role, redeemedBy: walletAddress }),
+  );
 }

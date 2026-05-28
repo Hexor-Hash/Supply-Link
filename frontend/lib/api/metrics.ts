@@ -43,6 +43,8 @@ export interface MetricsSnapshot {
   dependencies: DependencyMetrics[];
   /** Throttle counts from rate limiter */
   throttleCounts: Record<string, number>;
+  /** Named operation success/failure counters */
+  operations: Record<string, { success: number; failure: number }>;
 }
 
 // ── SLO targets ───────────────────────────────────────────────────────────────
@@ -134,10 +136,39 @@ export function getMetricsSnapshot(throttleCounts: Record<string, number>): Metr
     endpoints,
     dependencies: Array.from(dependencyStore.values()),
     throttleCounts,
+    operations: getOperationCounts(),
   };
 }
 
-// ── Instrumentation helper ────────────────────────────────────────────────────
+// ── Operation counters ────────────────────────────────────────────────────────
+
+export type OperationName =
+  | 'product.register'
+  | 'product.verify'
+  | 'event.create'
+  | 'event.fetch'
+  | 'wallet.connect'
+  | 'wallet.connect_failed'
+  | 'wallet.disconnect'
+  | 'qr.scan'
+  | 'export.csv'
+  | 'export.json'
+  | 'webhook.deliver';
+
+const operationCounters = new Map<string, { success: number; failure: number }>();
+
+/** Increment a named operation counter. */
+export function recordOperation(name: OperationName, outcome: 'success' | 'failure'): void {
+  if (!operationCounters.has(name)) {
+    operationCounters.set(name, { success: 0, failure: 0 });
+  }
+  operationCounters.get(name)![outcome]++;
+}
+
+/** Return a snapshot of all operation counters. */
+export function getOperationCounts(): Record<string, { success: number; failure: number }> {
+  return Object.fromEntries(operationCounters);
+}
 
 /**
  * Wrap a route handler to automatically record latency and status code.

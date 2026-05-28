@@ -2,26 +2,26 @@
  * Accessibility tests using axe-core.
  * Runs axe on key pages and asserts zero critical/serious violations.
  */
-import { describe, it, expect, vi } from "vitest";
-import { render } from "@testing-library/react";
-import { axe, toHaveNoViolations } from "jest-axe";
+import { describe, it, expect, vi } from 'vitest';
+import { render } from '@testing-library/react';
+import { axe, toHaveNoViolations } from 'jest-axe';
 
 expect.extend(toHaveNoViolations);
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
-vi.mock("next/navigation", () => ({
+vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-  usePathname: () => "/",
+  usePathname: () => '/',
   useSearchParams: () => new URLSearchParams(),
 }));
 
-vi.mock("next/font/google", () => ({
-  Geist: () => ({ className: "mock-font" }),
+vi.mock('next/font/google', () => ({
+  Geist: () => ({ className: 'mock-font' }),
 }));
 
-vi.mock("@/lib/state/store", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/state/store")>();
+vi.mock('@/lib/state/store', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/state/store')>();
   const state = {
     walletAddress: null,
     products: [],
@@ -33,10 +33,10 @@ vi.mock("@/lib/state/store", async (importOriginal) => {
     eventsError: null,
     productsLastFetched: null,
     eventsLastFetched: null,
-    searchQuery: "",
+    searchQuery: '',
     filterEventType: null,
-    sortBy: "name" as const,
-    sortOrder: "asc" as const,
+    sortBy: 'name' as const,
+    sortOrder: 'asc' as const,
     xlmBalance: null,
     networkMismatch: false,
     productPage: 0,
@@ -45,6 +45,7 @@ vi.mock("@/lib/state/store", async (importOriginal) => {
     eventPage: 0,
     eventPageSize: 20,
     eventTotal: 0,
+    compareIds: [] as string[],
     setWalletAddress: vi.fn(),
     setProducts: vi.fn(),
     setEvents: vi.fn(),
@@ -78,20 +79,21 @@ vi.mock("@/lib/state/store", async (importOriginal) => {
     disconnect: vi.fn(),
     setXlmBalance: vi.fn(),
     setNetworkMismatch: vi.fn(),
+    clearCompare: vi.fn(),
+    toggleCompare: vi.fn(),
   };
   return {
     ...actual,
-    useStore: (selector?: (s: typeof state) => unknown) =>
-      selector ? selector(state) : state,
+    useStore: (selector?: (s: typeof state) => unknown) => (selector ? selector(state) : state),
     selectFilteredProducts: () => [],
   };
 });
 
-vi.mock("@/lib/stellar/client", () => ({
+vi.mock('@/lib/stellar/client', () => ({
   getWalletAddress: vi.fn().mockResolvedValue(null),
-  CONTRACT_ID: "CTEST000",
-  NETWORK_PASSPHRASE: "Test SDF Network ; September 2015",
-  RPC_URL: "https://soroban-testnet.stellar.org",
+  CONTRACT_ID: 'CTEST000',
+  NETWORK_PASSPHRASE: 'Test SDF Network ; September 2015',
+  RPC_URL: 'https://soroban-testnet.stellar.org',
 }));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -100,40 +102,40 @@ async function renderAndRunAxe(ui: React.ReactElement) {
   const { container } = render(ui);
   const results = await axe(container, {
     runOnly: {
-      type: "tag",
-      values: ["wcag2a", "wcag2aa", "best-practice"],
+      type: 'tag',
+      values: ['wcag2a', 'wcag2aa', 'best-practice'],
     },
     // Only fail on critical and serious violations
-    resultTypes: ["violations"],
+    resultTypes: ['violations'],
   });
   // Filter to critical + serious only
   results.violations = results.violations.filter((v) =>
-    ["critical", "serious"].includes(v.impact ?? "")
+    ['critical', 'serious'].includes(v.impact ?? ''),
   );
   return results;
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-describe("Accessibility — landing page", () => {
-  it("has no critical/serious axe violations", async () => {
-    const { default: Page } = await import("@/app/page");
+describe('Accessibility — landing page', () => {
+  it('has no critical/serious axe violations', async () => {
+    const { default: Page } = await import('@/app/page');
     const results = await renderAndRunAxe(<Page />);
     expect(results).toHaveNoViolations();
   });
 });
 
-describe("Accessibility — dashboard page", () => {
-  it("has no critical/serious axe violations", async () => {
-    const { default: Page } = await import("@/app/(app)/dashboard/page");
+describe('Accessibility — dashboard page', () => {
+  it('has no critical/serious axe violations', async () => {
+    const { default: Page } = await import('@/app/(app)/dashboard/page');
     const results = await renderAndRunAxe(<Page />);
     expect(results).toHaveNoViolations();
   });
 });
 
-describe("Accessibility — products page", () => {
-  it("has no critical/serious axe violations", async () => {
-    const { default: Page } = await import("@/app/(app)/products/page");
+describe('Accessibility — products page', () => {
+  it('has no critical/serious axe violations', async () => {
+    const { default: Page } = await import('@/app/[locale]/(app)/products/page');
     const results = await renderAndRunAxe(<Page />);
     expect(results).toHaveNoViolations();
   });

@@ -24,8 +24,13 @@ export async function GET(
 ): Promise<NextResponse> {
   const start = Date.now();
 
-  // Apply IP-based rate limiting
-  const limited = applyRateLimit(request, 'GET /api/v1/products/[id]', RATE_LIMIT_PRESETS.default);
+  // Apply IP-based rate limiting (stricter for anonymous public read; wallet users get more headroom)
+  const limited = applyRateLimit(
+    request,
+    'GET /api/v1/products/[id]',
+    RATE_LIMIT_PRESETS.publicRead,
+    RATE_LIMIT_PRESETS.authenticated,
+  );
   if (limited) {
     recordRequest('GET /api/v1/products/[id]', 429, Date.now() - start);
     return limited;
