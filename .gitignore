@@ -1,0 +1,17 @@
+node_modules
+test_snapshots/
+.env
+.env.local
+*.log
+.DS_Store
+Thumbs.db
+
+# Smart contract coverage
+smart-contract/target/llvm-cov/
+smart-contract/lcov.info
+smart-contract/coverage/
+
+# Integration test artifacts
+smart-contract/integration_snapshots/
+*.profraw
+*.profdata

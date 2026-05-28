@@ -1,0 +1,655 @@
+openapi: 3.0.3
+info:
+  title: Supply-Link API
+  version: 0.1.0
+  description: |
+    REST API for the Supply-Link decentralized supply chain provenance tracker.
+    Built on Stellar / Soroban smart contracts.
+
+    ## Authentication
+    Protected endpoints require an API key passed in the `X-API-Key` header.
+
+    ```
+    X-API-Key: your_api_key_here
+    ```
+servers:
+  - url: https://supply-link.vercel.app
+    description: Production
+  - url: http://localhost:3000
+    description: Local development
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          required: [status, code, message, correlationId]
+          properties:
+            status:
+              type: integer
+              example: 400
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Request validation failed
+            correlationId:
+              type: string
+              example: 550e8400-e29b-41d4-a716-446655440000
+            details:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    example: productId
+                  location:
+                    type: string
+                    example: query
+                  message:
+                    type: string
+                    example: productId is required
+                  code:
+                    type: string
+                    example: too_small
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        version:
+          type: string
+          example: "0.1.0"
+        network:
+          type: string
+          example: "Test SDF Network ; September 2015"
+        contractId:
+          type: string
+          example: "CBUWSKT2UGOAXK4ZREVDJV5XHSYB42PZ3CERU2ZFUTUMAZLJEHNZIECA"
+        rpcUrl:
+          type: string
+          example: "https://soroban-testnet.stellar.org"
+        contractReachable:
+          type: boolean
+          example: true
+        uptime:
+          type: integer
+          example: 3600
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-04-27T14:00:00.000Z"
+
+    Rating:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "prod-abc123_GABC...XYZ_1714224000000"
+        productId:
+          type: string
+          example: "prod-abc123"
+        walletAddress:
+          type: string
+          example: "GABC...XYZ"
+        stars:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+        comment:
+          type: string
+          nullable: true
+          example: "Excellent provenance record."
+        timestamp:
+          type: integer
+          example: 1714224000000
+
+    RatingsResponse:
+      type: object
+      properties:
+        productId:
+          type: string
+          example: "prod-abc123"
+        averageRating:
+          type: number
+          example: 4.5
+        totalRatings:
+          type: integer
+          example: 12
+        recentRatings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Rating"
+
+    FeeBumpRequest:
+      type: object
+      required: [innerTx]
+      properties:
+        innerTx:
+          type: string
+          description: Base64-encoded Stellar transaction XDR envelope
+          example: "AAAAAgAAAAA..."
+
+    FeeBumpResponse:
+      type: object
+      properties:
+        feeBumpTx:
+          type: string
+          description: Base64-encoded fee-bump transaction XDR
+          example: "AAAABgAAAAA..."
+        cost:
+          type: string
+          description: Fee in stroops
+          example: "200"
+        message:
+          type: string
+          example: "Fee-bump transaction created. Ready to submit to Stellar network."
+
+    UploadResponse:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          example: "https://public.blob.vercel-storage.com/products/1714224000000-photo.jpg"
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "prod-001"
+        name:
+          type: string
+          example: "Organic Coffee Beans"
+        origin:
+          type: string
+          example: "Ethiopia"
+        owner:
+          type: string
+          description: Stellar wallet address
+          example: "GABC1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        timestamp:
+          type: integer
+          description: Unix timestamp in milliseconds
+          example: 1710000000000
+        active:
+          type: boolean
+          example: true
+        status:
+          type: string
+          enum: [active, inactive]
+          example: "active"
+        authorizedActors:
+          type: array
+          items:
+            type: string
+          description: List of Stellar wallet addresses authorized to add events
+          example:
+            - "GACTOR1ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567"
+            - "GACTOR2ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567"
+        requiredSignatures:
+          type: integer
+          minimum: 0
+          description: Number of signatures required for event approval (0 or 1 = immediate, >1 = multi-sig)
+          example: 1
+        imageUrl:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://public.blob.vercel-storage.com/products/coffee.jpg"
+        ownershipHistory:
+          type: array
+          items:
+            type: object
+            properties:
+              owner:
+                type: string
+                example: "GABC1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+              transferredAt:
+                type: integer
+                example: 1710000000000
+          example:
+            - owner: "GORIGINALOWNERABCDEFGHIJKLMNOPQRSTUVWXYZ"
+              transferredAt: 1700000000000
+            - owner: "GABC1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+              transferredAt: 1710000000000
+
+    TrackingEvent:
+      type: object
+      properties:
+        productId:
+          type: string
+          example: "prod-001"
+        eventType:
+          type: string
+          enum: [HARVEST, PROCESSING, SHIPPING, RETAIL]
+          example: "HARVEST"
+        location:
+          type: string
+          example: "Yirgacheffe, Ethiopia"
+        actor:
+          type: string
+          description: Stellar wallet address of the actor
+          example: "GACTOR1ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567"
+        timestamp:
+          type: integer
+          description: Unix timestamp in milliseconds
+          example: 1710000000000
+        metadata:
+          type: string
+          description: JSON string containing event-specific metadata
+          example: '{"notes": "Hand-picked, shade-grown", "lat": 6.1667, "lng": 38.2}'
+        pending:
+          type: boolean
+          nullable: true
+          description: True while an on-chain transaction is in-flight
+          example: false
+
+    PaginatedResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: {}
+        total:
+          type: integer
+          example: 42
+        offset:
+          type: integer
+          example: 0
+        limit:
+          type: integer
+          example: 50
+
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              example: "Invalid product ID"
+            correlationId:
+              type: string
+              format: uuid
+              example: "550e8400-e29b-41d4-a716-446655440000"
+
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      description: Returns service status, version, Stellar RPC reachability, and uptime. Rate-limited to 10 requests per IP per 60 seconds.
+      operationId: getHealth
+      tags: [System]
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                status: ok
+                version: "0.1.0"
+                network: "Test SDF Network ; September 2015"
+                contractId: "CBUWSKT2UGOAXK4ZREVDJV5XHSYB42PZ3CERU2ZFUTUMAZLJEHNZIECA"
+                rpcUrl: "https://soroban-testnet.stellar.org"
+                contractReachable: true
+                uptime: 3600
+                timestamp: "2026-04-27T14:00:00.000Z"
+        "429":
+          description: Rate limit exceeded
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+                example: 60
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error:
+                  status: 429
+                  code: RATE_LIMITED
+                  message: Too many requests
+                  correlationId: 550e8400-e29b-41d4-a716-446655440000
+
+  /api/ratings:
+    get:
+      summary: Get ratings for a product
+      operationId: getRatings
+      tags: [Ratings]
+      parameters:
+        - name: productId
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "prod-abc123"
+      responses:
+        "200":
+          description: Ratings summary and recent reviews
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RatingsResponse"
+              example:
+                productId: "prod-abc123"
+                averageRating: 4.5
+                totalRatings: 12
+                recentRatings:
+                  - id: "prod-abc123_GABC_1714224000000"
+                    productId: "prod-abc123"
+                    walletAddress: "GABC...XYZ"
+                    stars: 5
+                    comment: "Excellent provenance record."
+                    timestamp: 1714224000000
+        "400":
+          description: Missing productId
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error:
+                  status: 400
+                  code: VALIDATION_ERROR
+                  message: Request validation failed
+                  correlationId: 550e8400-e29b-41d4-a716-446655440000
+                  details:
+                    - field: productId
+                      location: query
+                      message: productId is required
+                      code: too_small
+
+    post:
+      summary: Submit a product rating
+      description: Requires a valid Stellar wallet signature over the message field.
+      operationId: postRating
+      tags: [Ratings]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productId, walletAddress, stars, message, signature]
+              properties:
+                productId:
+                  type: string
+                  example: "prod-abc123"
+                walletAddress:
+                  type: string
+                  description: Stellar public key (G… 56 chars)
+                  example: "GABC...XYZ"
+                stars:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  example: 5
+                comment:
+                  type: string
+                  maxLength: 500
+                  example: "Excellent provenance record."
+                message:
+                  type: string
+                  description: Arbitrary message that was signed
+                  example: "rate:prod-abc123:5"
+                signature:
+                  type: string
+                  description: Ed25519 signature of message by walletAddress
+                  example: "abc123..."
+      responses:
+        "201":
+          description: Rating created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rating"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                invalid_json:
+                  value:
+                    error:
+                      status: 400
+                      code: INVALID_JSON
+                      message: Request body must be valid JSON
+                      correlationId: 550e8400-e29b-41d4-a716-446655440000
+                invalid_body:
+                  value:
+                    error:
+                      status: 400
+                      code: VALIDATION_ERROR
+                      message: Request validation failed
+                      correlationId: 550e8400-e29b-41d4-a716-446655440000
+                      details:
+                        - field: stars
+                          location: body
+                          message: stars must be between 1 and 5
+                          code: too_small
+        "401":
+          description: Invalid wallet signature
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error:
+                  status: 401
+                  code: INVALID_SIGNATURE
+                  message: Invalid signature
+                  correlationId: 550e8400-e29b-41d4-a716-446655440000
+
+  /api/v1/fee-bump:
+    post:
+      summary: Create a fee-bump transaction
+      description: |
+        Wraps a user's Stellar transaction in a fee-bump transaction paid by
+        the app's account, enabling gasless verification for consumers without XLM.
+      operationId: createFeeBump
+      tags: [Stellar]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeeBumpRequest"
+            example:
+              innerTx: "AAAAAgAAAAA..."
+      responses:
+        "200":
+          description: Fee-bump transaction ready to submit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeeBumpResponse"
+              example:
+                feeBumpTx: "AAAABgAAAAA..."
+                cost: "200"
+                message: "Fee-bump transaction created. Ready to submit to Stellar network."
+        "400":
+          description: Invalid or missing innerTx
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                missing:
+                  value:
+                    error:
+                      status: 400
+                      code: VALIDATION_ERROR
+                      message: Request validation failed
+                      correlationId: 550e8400-e29b-41d4-a716-446655440000
+                      details:
+                        - field: innerTx
+                          location: body
+                          message: innerTx is required
+                          code: too_small
+                invalid_xdr:
+                  value:
+                    error:
+                      status: 400
+                      code: INVALID_PAYLOAD
+                      message: Invalid transaction XDR
+                      correlationId: 550e8400-e29b-41d4-a716-446655440000
+        "415":
+          description: Unsupported content type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error:
+                  status: 415
+                  code: UNSUPPORTED_CONTENT_TYPE
+                  message: Expected application/json request body
+                  correlationId: 550e8400-e29b-41d4-a716-446655440000
+        "500":
+          description: Fee-bump account not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error:
+                  status: 500
+                  code: DEPENDENCY_UNAVAILABLE
+                  message: Fee-bump account not configured
+                  correlationId: 550e8400-e29b-41d4-a716-446655440000
+
+  /api/v1/upload:
+    post:
+      summary: Upload a product image
+      description: Accepts JPEG, PNG, WebP, or GIF up to 5 MB. Returns a public CDN URL.
+      operationId: uploadImage
+      tags: [Products]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Upload successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResponse"
+              example:
+                url: "https://public.blob.vercel-storage.com/products/1714224000000-photo.jpg"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                no_file:
+                  value:
+                    error:
+                      status: 400
+                      code: VALIDATION_ERROR
+                      message: Request validation failed
+                      correlationId: 550e8400-e29b-41d4-a716-446655440000
+                      details:
+                        - field: file
+                          location: body
+                          message: file is required
+                          code: custom
+                bad_type:
+                  value:
+                    error:
+                      status: 400
+                      code: VALIDATION_ERROR
+                      message: Invalid file type. Allowed: JPEG, PNG, WebP, GIF
+                      correlationId: 550e8400-e29b-41d4-a716-446655440000
+                too_large:
+                  value:
+                    error:
+                      status: 400
+                      code: VALIDATION_ERROR
+                      message: File too large. Maximum size is 5 MB
+                      correlationId: 550e8400-e29b-41d4-a716-446655440000
+        "415":
+          description: Unsupported content type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error:
+                  status: 415
+                  code: UNSUPPORTED_CONTENT_TYPE
+                  message: Expected multipart/form-data request body
+                  correlationId: 550e8400-e29b-41d4-a716-446655440000
+
+  /api/v1/products/{id}/badge.png:
+    get:
+      summary: Get a shareable SVG badge for a product
+      description: Returns an SVG badge with the product name, origin, verification date, and a QR code link.
+      operationId: getProductBadge
+      tags: [Products]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "prod-abc123"
+      responses:
+        "200":
+          description: SVG badge
+          content:
+            image/svg+xml:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              example:
+                error:
+                  status: 404
+                  code: INVALID_PAYLOAD
+                  message: Product not found
+                  correlationId: 550e8400-e29b-41d4-a716-446655440000

@@ -1,0 +1,119 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "getStarted": "Get Started"
+  },
+  "hero": {
+    "badge": "Powered by Stellar & Soroban",
+    "title": "Transparent Supply Chains,",
+    "titleHighlight": "On-Chain",
+    "subtitle": "Register products, track every event from harvest to retail, and let anyone verify authenticity with a QR scan — all secured by Soroban smart contracts.",
+    "cta": "Get Started",
+    "verify": "Verify a Product"
+  },
+  "journey": {
+    "harvest": "Harvest",
+    "processing": "Processing",
+    "shipping": "Shipping",
+    "retail": "Retail"
+  },
+  "features": {
+    "heading": "Everything you need",
+    "subheading": "A complete toolkit for producers, logistics partners, and consumers.",
+    "registration": {
+      "title": "Product Registration",
+      "desc": "Register any physical product on-chain with a unique ID, origin, and metadata."
+    },
+    "tracking": {
+      "title": "Event Tracking",
+      "desc": "Log every supply chain event — harvest, processing, shipping, retail — with timestamps."
+    },
+    "qr": {
+      "title": "QR Verification",
+      "desc": "Consumers scan a QR code to instantly verify product authenticity and full history."
+    },
+    "auth": {
+      "title": "Multi-party Auth",
+      "desc": "Authorize multiple actors per product. Only approved parties can add events."
+    }
+  },
+  "howItWorks": {
+    "heading": "How it works",
+    "subheading": "Four steps from registration to consumer verification.",
+    "step1": {
+      "title": "Register your product",
+      "desc": "Connect your Freighter wallet and register a product on the Soroban smart contract. You get a unique on-chain ID."
+    },
+    "step2": {
+      "title": "Authorize supply chain actors",
+      "desc": "Add logistics partners, processors, and retailers as authorized actors who can log events."
+    },
+    "step3": {
+      "title": "Log events at each stage",
+      "desc": "Each authorized actor logs events (harvest, processing, shipping, retail) with location and metadata."
+    },
+    "step4": {
+      "title": "Consumers verify with QR",
+      "desc": "A QR code links to the full on-chain history. Anyone can verify authenticity without a wallet."
+    }
+  },
+  "useCases": {
+    "heading": "Built for every industry",
+    "subheading": "From farm to pharmacy, Supply-Link adapts to any physical supply chain.",
+    "food": {
+      "title": "Food & Beverage",
+      "desc": "Trace organic certifications, cold-chain compliance, and farm-to-table provenance."
+    },
+    "pharma": {
+      "title": "Pharmaceuticals",
+      "desc": "Ensure drug authenticity, track lot numbers, and prevent counterfeits."
+    },
+    "fashion": {
+      "title": "Fashion",
+      "desc": "Verify ethical sourcing, material origins, and fair-trade certifications."
+    },
+    "electronics": {
+      "title": "Electronics",
+      "desc": "Track component origins, assembly locations, and warranty chains."
+    }
+  },
+  "cta": {
+    "heading": "Ready to get started?",
+    "subheading": "Connect your Freighter wallet and register your first product in under a minute.",
+    "button": "Launch App"
+  },
+  "footer": {
+    "copyright": "© {year} Supply-Link. MIT License."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "totalProducts": "Total Products",
+    "totalEvents": "Total Events",
+    "activeProducts": "Active Products",
+    "last24h": "Last 24 h",
+    "eventsPerDay": "Events per day (last 30 days)",
+    "eventTypeDistribution": "Event type distribution",
+    "recentEvents": "Recent Events",
+    "noEvents": "No events yet.",
+    "product": "Product",
+    "type": "Type",
+    "location": "Location",
+    "time": "Time"
+  },
+  "verify": {
+    "notFound": {
+      "title": "Product Not Found",
+      "desc": "No product with this ID exists on this network:",
+      "hint": "The QR code may be invalid or the product may have been removed.",
+      "scanAnother": "Scan Another QR"
+    },
+    "origin": "Origin",
+    "registered": "Registered",
+    "owner": "Owner",
+    "active": "Active",
+    "inactive": "Inactive",
+    "verifiedBadge": "Verified on Stellar · View Contract",
+    "journey": "Product Journey",
+    "scanAnother": "Scan Another QR"
+  }
+}

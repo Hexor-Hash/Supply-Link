@@ -1,0 +1,119 @@
+{
+  "nav": {
+    "dashboard": "Panel",
+    "getStarted": "Comenzar"
+  },
+  "hero": {
+    "badge": "Impulsado por Stellar y Soroban",
+    "title": "Cadenas de suministro transparentes,",
+    "titleHighlight": "En cadena",
+    "subtitle": "Registra productos, rastrea cada evento desde la cosecha hasta la venta, y permite que cualquiera verifique la autenticidad con un escaneo QR — todo asegurado por contratos inteligentes Soroban.",
+    "cta": "Comenzar",
+    "verify": "Verificar un producto"
+  },
+  "journey": {
+    "harvest": "Cosecha",
+    "processing": "Procesamiento",
+    "shipping": "Envío",
+    "retail": "Venta"
+  },
+  "features": {
+    "heading": "Todo lo que necesitas",
+    "subheading": "Un kit completo para productores, socios logísticos y consumidores.",
+    "registration": {
+      "title": "Registro de productos",
+      "desc": "Registra cualquier producto físico en cadena con un ID único, origen y metadatos."
+    },
+    "tracking": {
+      "title": "Seguimiento de eventos",
+      "desc": "Registra cada evento de la cadena de suministro — cosecha, procesamiento, envío, venta — con marcas de tiempo."
+    },
+    "qr": {
+      "title": "Verificación QR",
+      "desc": "Los consumidores escanean un código QR para verificar instantáneamente la autenticidad e historial completo del producto."
+    },
+    "auth": {
+      "title": "Autenticación múltiple",
+      "desc": "Autoriza múltiples actores por producto. Solo las partes aprobadas pueden agregar eventos."
+    }
+  },
+  "howItWorks": {
+    "heading": "Cómo funciona",
+    "subheading": "Cuatro pasos desde el registro hasta la verificación del consumidor.",
+    "step1": {
+      "title": "Registra tu producto",
+      "desc": "Conecta tu billetera Freighter y registra un producto en el contrato inteligente Soroban. Obtienes un ID único en cadena."
+    },
+    "step2": {
+      "title": "Autoriza actores de la cadena",
+      "desc": "Agrega socios logísticos, procesadores y minoristas como actores autorizados que pueden registrar eventos."
+    },
+    "step3": {
+      "title": "Registra eventos en cada etapa",
+      "desc": "Cada actor autorizado registra eventos (cosecha, procesamiento, envío, venta) con ubicación y metadatos."
+    },
+    "step4": {
+      "title": "Los consumidores verifican con QR",
+      "desc": "Un código QR enlaza al historial completo en cadena. Cualquiera puede verificar la autenticidad sin una billetera."
+    }
+  },
+  "useCases": {
+    "heading": "Construido para cada industria",
+    "subheading": "Desde la granja hasta la farmacia, Supply-Link se adapta a cualquier cadena de suministro física.",
+    "food": {
+      "title": "Alimentos y bebidas",
+      "desc": "Rastrea certificaciones orgánicas, cumplimiento de cadena de frío y procedencia de granja a mesa."
+    },
+    "pharma": {
+      "title": "Farmacéuticos",
+      "desc": "Garantiza la autenticidad de los medicamentos, rastrea números de lote y previene falsificaciones."
+    },
+    "fashion": {
+      "title": "Moda",
+      "desc": "Verifica el abastecimiento ético, los orígenes de los materiales y las certificaciones de comercio justo."
+    },
+    "electronics": {
+      "title": "Electrónica",
+      "desc": "Rastrea los orígenes de los componentes, las ubicaciones de ensamblaje y las cadenas de garantía."
+    }
+  },
+  "cta": {
+    "heading": "¿Listo para comenzar?",
+    "subheading": "Conecta tu billetera Freighter y registra tu primer producto en menos de un minuto.",
+    "button": "Lanzar aplicación"
+  },
+  "footer": {
+    "copyright": "© {year} Supply-Link. Licencia MIT."
+  },
+  "dashboard": {
+    "title": "Panel",
+    "totalProducts": "Total de productos",
+    "totalEvents": "Total de eventos",
+    "activeProducts": "Productos activos",
+    "last24h": "Últimas 24 h",
+    "eventsPerDay": "Eventos por día (últimos 30 días)",
+    "eventTypeDistribution": "Distribución por tipo de evento",
+    "recentEvents": "Eventos recientes",
+    "noEvents": "Sin eventos aún.",
+    "product": "Producto",
+    "type": "Tipo",
+    "location": "Ubicación",
+    "time": "Hora"
+  },
+  "verify": {
+    "notFound": {
+      "title": "Producto no encontrado",
+      "desc": "No existe ningún producto con este ID en esta red:",
+      "hint": "El código QR puede ser inválido o el producto puede haber sido eliminado.",
+      "scanAnother": "Escanear otro QR"
+    },
+    "origin": "Origen",
+    "registered": "Registrado",
+    "owner": "Propietario",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "verifiedBadge": "Verificado en Stellar · Ver contrato",
+    "journey": "Trayecto del producto",
+    "scanAnother": "Escanear otro QR"
+  }
+}

@@ -8,6 +8,25 @@
   "scripts": {
     "dev": "npm run dev --workspace=frontend",
     "build": "npm run build --workspace=frontend",
-    "lint": "npm run lint --workspace=frontend"
+    "lint": "npm run lint --workspace=frontend",
+    "format": "prettier --write \"frontend/**/*.{ts,tsx,json,css,md}\"",
+    "format:check": "prettier --check \"frontend/**/*.{ts,tsx,json,css,md}\"",
+    "test:cov": "npm run test:cov --workspace=frontend",
+    "test:e2e": "npm run test:e2e --workspace=frontend",
+    "test:integration": "cd smart-contract && cargo test --test '*' --release",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "**/*.{ts,tsx}": [
+      "eslint --fix --max-warnings=0",
+      "prettier --write"
+    ],
+    "**/*.{json,css,md}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0"
   }
 }

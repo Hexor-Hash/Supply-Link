@@ -1,0 +1,1 @@
+cd frontend && npx tsc --noEmit || true

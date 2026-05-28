@@ -3,3 +3,13 @@ node_modules/
 out/
 dist/
 .env*.local
+.env
+*.log
+.DS_Store
+Thumbs.db
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+.vscode/
