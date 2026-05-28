@@ -114,6 +114,57 @@
     "inactive": "Inactivo",
     "verifiedBadge": "Verificado en Stellar · Ver contrato",
     "journey": "Trayecto del producto",
-    "scanAnother": "Escanear otro QR"
+    "scanAnother": "Escanear otro QR",
+    "communityRatings": "Valoraciones de la comunidad",
+    "noEvents": "Aún no se han registrado eventos para este producto.",
+    "eventTypes": {
+      "HARVEST": "Cosecha",
+      "PROCESSING": "Procesamiento",
+      "SHIPPING": "Envío",
+      "RETAIL": "Venta"
+    }
+  },
+  "ratings": {
+    "count": "{count, plural, =0 {Aún no hay valoraciones} one {# valoración} other {# valoraciones}}",
+    "leaveRating": "Deja una valoración",
+    "commentPlaceholder": "Añade un comentario (opcional, máx. 500 caracteres)",
+    "submitButton": "Enviar valoración",
+    "submitting": "Enviando...",
+    "connectPrompt": "Conecta tu billetera para dejar una valoración",
+    "connectWalletFirst": "Primero conecta tu billetera",
+    "selectRating": "Por favor selecciona una valoración",
+    "submitSuccess": "Valoración enviada correctamente",
+    "submitError": "No se pudo enviar la valoración"
+  },
+  "errors": {
+    "PRODUCT_NOT_FOUND": "El producto solicitado no existe en la cadena.",
+    "NOT_AUTHORIZED": "No estás autorizado para realizar esta acción en este producto.",
+    "APPROVER_NOT_AUTHORIZED": "El aprobador no es el propietario del producto ni un actor autorizado.",
+    "OWNER_ONLY": "Solo el propietario del producto puede realizar esta acción.",
+    "NO_PENDING_EVENTS": "No hay eventos pendientes en la cola de aprobación para este producto.",
+    "PENDING_EVENT_EXPIRED": "Este evento pendiente ha caducado y ya no se puede aprobar.",
+    "INVALID_NONCE": "El nonce proporcionado no coincide con el valor esperado. Actualiza e inténtalo de nuevo.",
+    "UNKNOWN": "Se produjo un error inesperado del contrato. Inténtalo de nuevo."
+  },
+  "privateMetadata": {
+    "title": "Metadatos privados",
+    "locked": "Estos metadatos son privados",
+    "lockedHint": "Solo las partes autorizadas que posean la clave de descifrado pueden verlos. La procedencia sigue demostrándose en la cadena.",
+    "onChainCommitment": "Compromiso en la cadena",
+    "keyPlaceholder": "Pega la clave de descifrado",
+    "keyRequired": "Se requiere una clave de descifrado.",
+    "decrypt": "Descifrar",
+    "decrypting": "Descifrando…",
+    "payloadUnavailable": "La carga cifrada no está disponible.",
+    "commitmentMismatch": "La carga fuera de la cadena no coincide con el compromiso en la cadena.",
+    "decryptFailed": "Error al descifrar. Comprueba que la clave sea correcta.",
+    "verified": "Verificado con el compromiso en la cadena",
+    "markPrivate": "Marcar los metadatos como privados",
+    "markPrivateHint": "Cifra los metadatos en tu navegador; solo se almacena un compromiso hash en la cadena.",
+    "submitSuccess": "Evento privado añadido",
+    "saveKeyTitle": "Guarda ahora tu clave de descifrado",
+    "saveKeyWarning": "Esta clave se muestra una sola vez y nunca se envía al servidor. Cualquiera que la tenga puede leer estos metadatos; sin ella, los datos son irrecuperables.",
+    "generatedKey": "Clave de descifrado",
+    "dismiss": "Listo"
   }
 }

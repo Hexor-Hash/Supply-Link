@@ -1,11 +1,12 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useStore } from "@/lib/state/store";
-import { toast } from "sonner";
-import { Star } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import type { Rating } from "@/lib/types";
+import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { useStore } from '@/lib/state/store';
+import { toast } from 'sonner';
+import { Star } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import type { Rating } from '@/lib/types';
 
 interface RatingStats {
   productId: string;
@@ -19,11 +20,12 @@ interface RatingWidgetProps {
 }
 
 export function RatingWidget({ productId }: RatingWidgetProps) {
+  const t = useTranslations('ratings');
   const { walletAddress } = useStore();
   const [stats, setStats] = useState<RatingStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [stars, setStars] = useState(0);
-  const [comment, setComment] = useState("");
+  const [comment, setComment] = useState('');
   const [hoveredStar, setHoveredStar] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
@@ -39,7 +41,7 @@ export function RatingWidget({ productId }: RatingWidgetProps) {
         setStats(data);
       }
     } catch (error) {
-      console.error("Failed to fetch ratings:", error);
+      console.error('Failed to fetch ratings:', error);
     } finally {
       setLoading(false);
     }
@@ -47,12 +49,12 @@ export function RatingWidget({ productId }: RatingWidgetProps) {
 
   async function submitRating() {
     if (!walletAddress) {
-      toast.error("Please connect your wallet first");
+      toast.error(t('connectWalletFirst'));
       return;
     }
 
     if (stars === 0) {
-      toast.error("Please select a rating");
+      toast.error(t('selectRating'));
       return;
     }
 
@@ -60,36 +62,31 @@ export function RatingWidget({ productId }: RatingWidgetProps) {
 
     try {
       const message = `Rate ${productId}`;
-      
+
       // Create a minimal transaction to sign for verification
-      const {
-        TransactionBuilder,
-        BASE_FEE,
-        Account,
-        Memo,
-      } = await import("@stellar/stellar-sdk");
-      const { signTransaction } = await import("@stellar/freighter-api");
+      const { TransactionBuilder, BASE_FEE, Account, Memo } = await import('@stellar/stellar-sdk');
+      const { signTransaction } = await import('@stellar/freighter-api');
 
       // Create test account (sequence doesn't matter for signing)
-      const account = new Account(walletAddress, "0");
+      const account = new Account(walletAddress, '0');
 
       // Build transaction with message in memo
       const tx = new TransactionBuilder(account, {
         fee: BASE_FEE,
-        networkPassphrase: "Test SDF Network ; September 2015",
+        networkPassphrase: 'Test SDF Network ; September 2015',
       })
         .addMemo(Memo.text(message.slice(0, 28)))
         .setTimeout(300)
         .build();
 
-      const txXdr = tx.toEnvelope().toXDR("base64");
+      const txXdr = tx.toEnvelope().toXDR('base64');
 
       // Sign with Freighter
       const signedResult = await signTransaction(txXdr);
 
-      const res = await fetch("/api/ratings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/ratings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           productId,
           walletAddress,
@@ -101,17 +98,17 @@ export function RatingWidget({ productId }: RatingWidgetProps) {
       });
 
       if (res.ok) {
-        toast.success("Rating submitted successfully");
+        toast.success(t('submitSuccess'));
         setStars(0);
-        setComment("");
+        setComment('');
         await fetchRatings();
       } else {
         const err = await res.json();
-        toast.error(err.error || "Failed to submit rating");
+        toast.error(err.error || t('submitError'));
       }
     } catch (error) {
-      console.error("Rating submission error:", error);
-      toast.error("Failed to submit rating");
+      console.error('Rating submission error:', error);
+      toast.error(t('submitError'));
     } finally {
       setSubmitting(false);
     }
@@ -139,8 +136,8 @@ export function RatingWidget({ productId }: RatingWidgetProps) {
                 size={20}
                 className={
                   i < Math.round(displayRating)
-                    ? "fill-yellow-400 text-yellow-400"
-                    : "text-gray-300 dark:text-gray-600"
+                    ? 'fill-yellow-400 text-yellow-400'
+                    : 'text-gray-300 dark:text-gray-600'
                 }
               />
             ))}
@@ -150,7 +147,7 @@ export function RatingWidget({ productId }: RatingWidgetProps) {
           </span>
         </div>
         <p className="text-sm text-[var(--muted)]">
-          {stats?.totalRatings || 0} {stats?.totalRatings === 1 ? "rating" : "ratings"}
+          {t('count', { count: stats?.totalRatings || 0 })}
         </p>
       </div>
 
@@ -167,8 +164,8 @@ export function RatingWidget({ productId }: RatingWidgetProps) {
                       size={14}
                       className={
                         i < rating.stars
-                          ? "fill-yellow-400 text-yellow-400"
-                          : "text-gray-300 dark:text-gray-600"
+                          ? 'fill-yellow-400 text-yellow-400'
+                          : 'text-gray-300 dark:text-gray-600'
                       }
                     />
                   ))}
@@ -181,9 +178,7 @@ export function RatingWidget({ productId }: RatingWidgetProps) {
                 </span>
               </div>
               {rating.comment && (
-                <p className="text-sm text-[var(--foreground)] ml-1">
-                  {rating.comment}
-                </p>
+                <p className="text-sm text-[var(--foreground)] ml-1">{rating.comment}</p>
               )}
             </div>
           ))}
@@ -194,7 +189,7 @@ export function RatingWidget({ productId }: RatingWidgetProps) {
       {walletAddress && (
         <div className="border-t border-[var(--card-border)] pt-4">
           <h3 className="text-sm font-semibold text-[var(--foreground)] mb-3">
-            Leave a rating
+            {t('leaveRating')}
           </h3>
 
           {/* Star selector */}
@@ -211,8 +206,8 @@ export function RatingWidget({ productId }: RatingWidgetProps) {
                   size={24}
                   className={
                     i < (hoveredStar || stars)
-                      ? "fill-yellow-400 text-yellow-400"
-                      : "text-gray-300 dark:text-gray-600"
+                      ? 'fill-yellow-400 text-yellow-400'
+                      : 'text-gray-300 dark:text-gray-600'
                   }
                 />
               </button>
@@ -223,30 +218,22 @@ export function RatingWidget({ productId }: RatingWidgetProps) {
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value.slice(0, 500))}
-            placeholder="Add a comment (optional, max 500 chars)"
+            placeholder={t('commentPlaceholder')}
             className="w-full px-3 py-2 text-sm rounded-lg bg-[var(--input-bg)] border border-[var(--card-border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none mb-3"
             rows={3}
           />
 
-          <div className="text-xs text-[var(--muted)] mb-3">
-            {comment.length}/500
-          </div>
+          <div className="text-xs text-[var(--muted)] mb-3">{comment.length}/500</div>
 
-          <Button
-            onClick={submitRating}
-            disabled={submitting || stars === 0}
-            className="w-full"
-          >
-            {submitting ? "Submitting..." : "Submit Rating"}
+          <Button onClick={submitRating} disabled={submitting || stars === 0} className="w-full">
+            {submitting ? t('submitting') : t('submitButton')}
           </Button>
         </div>
       )}
 
       {!walletAddress && (
         <div className="border-t border-[var(--card-border)] pt-4 text-center">
-          <p className="text-sm text-[var(--muted)]">
-            Connect your wallet to leave a rating
-          </p>
+          <p className="text-sm text-[var(--muted)]">{t('connectPrompt')}</p>
         </div>
       )}
     </div>

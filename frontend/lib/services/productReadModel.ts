@@ -70,6 +70,8 @@ function normalizeProduct(raw: Record<string, unknown>, id: string): Product {
 
 /** Normalize raw on-chain event data into the canonical TrackingEvent shape. */
 function normalizeEvent(raw: Record<string, unknown>): TrackingEvent {
+  const commitmentRaw = raw.metadata_commitment ?? raw.metadataCommitment;
+  const commitment = typeof commitmentRaw === 'string' ? commitmentRaw : '';
   return {
     productId: String(raw.product_id ?? raw.productId ?? ''),
     location: String(raw.location ?? ''),
@@ -77,6 +79,8 @@ function normalizeEvent(raw: Record<string, unknown>): TrackingEvent {
     timestamp: Number(raw.timestamp ?? 0),
     eventType: String(raw.event_type ?? raw.eventType ?? 'HARVEST') as TrackingEvent['eventType'],
     metadata: typeof raw.metadata === 'string' ? raw.metadata : JSON.stringify(raw.metadata ?? {}),
+    metadataCommitment: commitment || undefined,
+    privateMetadata: Boolean(raw.private_metadata ?? raw.privateMetadata ?? false),
   };
 }
 

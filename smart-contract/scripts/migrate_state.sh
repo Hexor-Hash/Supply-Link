@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 # migrate_state.sh
+# Orchestrates a full contract upgrade with pre-snapshot, deploy, and post-validation.
+# On failure, prints rollback instructions.
+#
+# Usage:
+#   CONTRACT_ID=C... NETWORK=testnet SOURCE=deployer \
+#     ./migrate_state.sh
 # Reads the latest upgrade snapshot and re-registers all products + events
 # on the new contract. Idempotent: skips products that already exist.
 # Usage: NEW_CONTRACT=<addr> SOURCE=<alias> NETWORK=testnet bash migrate_state.sh

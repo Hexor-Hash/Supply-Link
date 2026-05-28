@@ -5,6 +5,9 @@ import { apiError, withCorrelationId, ErrorCode } from '@/lib/api/errors';
 import { withIdempotency } from '@/lib/api/idempotency';
 import { requirePolicy } from '@/lib/api/policy';
 import { AuditEmitter } from '@/lib/api/audit';
+import { applyRateLimit, RATE_LIMIT_PRESETS } from '@/lib/api/rateLimit';
+import { handleValidationError, parseJsonBody } from '@/lib/api/validation';
+import { z } from 'zod';
 
 export function OPTIONS(request: NextRequest) {
   return handleOptions(request);
@@ -22,17 +25,9 @@ async function handler(request: NextRequest) {
     let resultStatus: number = 200;
 
     try {
-      const body = JSON.parse(rawBody);
+      // Validates content-type and JSON syntax, throwing RequestValidationError on failure
+      const body = parseJsonBody(req, rawBody, z.object({ innerTx: z.string() }));
       const { innerTx } = body;
-
-      if (!innerTx || typeof innerTx !== 'string') {
-        resultStatus = 400;
-        resultBody = {
-          error: ErrorCode.MISSING_FIELDS,
-          message: "Missing or invalid 'innerTx' parameter",
-        };
-        return withCors(req, apiError(req, resultStatus, resultBody.error, resultBody.message));
-      }
 
       const feeBumpSecret = process.env.STELLAR_FEE_BUMP_SECRET;
       if (!feeBumpSecret) {
@@ -82,14 +77,14 @@ async function handler(request: NextRequest) {
         message: 'Failed to create fee-bump transaction',
       };
     } finally {
-      // Audit log the operation
-      AuditEmitter.emit(
-        req,
-        'fee-bump.create',
-        resultStatus,
-        rawBody ? JSON.parse(rawBody) : undefined,
-        resultBody,
-      );
+      // Audit log the operation — rawBody may be invalid JSON, so guard the parse
+      let parsedBody: unknown;
+      try {
+        parsedBody = rawBody ? JSON.parse(rawBody) : undefined;
+      } catch {
+        parsedBody = undefined;
+      }
+      AuditEmitter.emit(req, 'fee-bump.create', resultStatus, parsedBody, resultBody);
     }
 
     if (resultStatus === 200) {
@@ -102,4 +97,3 @@ async function handler(request: NextRequest) {
 
 // Access tier: internal – signs with STELLAR_FEE_BUMP_SECRET; never expose publicly
 export const POST = requirePolicy('internal', handler);
-

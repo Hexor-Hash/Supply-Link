@@ -1,18 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import * as Dialog from '@radix-ui/react-dialog';
-import { X, RefreshCw, WifiOff } from 'lucide-react';
+import { X, RefreshCw } from 'lucide-react';
 import { registerProduct } from '@/lib/stellar/client';
 import { useStore } from '@/lib/state/store';
 import { useToast } from '@/lib/hooks/useToast';
 import { ImageUpload } from '@/components/products/ImageUpload';
 import { productIdSchema } from '@/lib/validators';
-import { useOfflineDraft } from '@/lib/hooks/useOfflineDraft';
-import { offlineQueue } from '@/lib/offlineQueue';
 
 const schema = z.object({
   id: productIdSchema,
@@ -82,22 +80,6 @@ export function RegisterProductForm({ open, onOpenChange }: Props) {
       return;
     }
 
-    if (!isOnline) {
-      offlineQueue.enqueue({
-        type: 'register_product',
-        payload: { ...values, imageUrl: imageUrl ?? null },
-      });
-      toast.success(
-        'Saved offline',
-        'Registration queued and will sync when connectivity returns.',
-      );
-      clearDraft();
-      reset({ id: generateId() });
-      setImageUrl(undefined);
-      onOpenChange(false);
-      return;
-    }
-
     setPending(true);
     const toastId = toast.loading('Registering product on-chain…');
 
@@ -142,8 +124,11 @@ export function RegisterProductForm({ open, onOpenChange }: Props) {
         <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md bg-[var(--background)] border border-[var(--card-border)] rounded-2xl p-6 shadow-xl">
           <div className="flex items-center justify-between mb-6">
             <Dialog.Title className="text-lg font-semibold">Register New Product</Dialog.Title>
-            <Dialog.Close className="p-1 rounded-lg hover:bg-[var(--muted-bg)] transition-colors">
-              <X size={18} />
+            <Dialog.Close
+              className="p-1 rounded-lg hover:bg-[var(--muted-bg)] transition-colors"
+              aria-label="Close dialog"
+            >
+              <X size={18} aria-hidden />
             </Dialog.Close>
           </div>
 
@@ -173,9 +158,12 @@ export function RegisterProductForm({ open, onOpenChange }: Props) {
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
             {/* Product ID */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Product ID</label>
+              <label htmlFor="register-product-id" className="text-sm font-medium">
+                Product ID
+              </label>
               <div className="flex gap-2">
                 <input
+                  id="register-product-id"
                   {...register('id')}
                   className="flex-1 px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-sm font-mono focus:outline-none focus:ring-2 focus:ring-violet-500"
                 />
@@ -183,42 +171,61 @@ export function RegisterProductForm({ open, onOpenChange }: Props) {
                   type="button"
                   onClick={() => setValue('id', generateId())}
                   className="p-2 rounded-lg border border-[var(--card-border)] hover:bg-[var(--muted-bg)] transition-colors"
-                  title="Regenerate ID"
+                  aria-label="Regenerate ID"
                 >
-                  <RefreshCw size={16} />
+                  <RefreshCw size={16} aria-hidden />
                 </button>
               </div>
-              {errors.id && <p className="text-xs text-red-500">{errors.id.message}</p>}
+              {errors.id && (
+                <p className="text-xs text-red-500" role="alert">
+                  {errors.id.message}
+                </p>
+              )}
             </div>
 
             {/* Name */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Name</label>
+              <label htmlFor="register-product-name" className="text-sm font-medium">
+                Name
+              </label>
               <input
+                id="register-product-name"
                 {...register('name')}
                 placeholder="e.g. Organic Coffee Beans"
                 className="px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
-              {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
+              {errors.name && (
+                <p className="text-xs text-red-500" role="alert">
+                  {errors.name.message}
+                </p>
+              )}
             </div>
 
             {/* Origin */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">Origin</label>
+              <label htmlFor="register-product-origin" className="text-sm font-medium">
+                Origin
+              </label>
               <input
+                id="register-product-origin"
                 {...register('origin')}
                 placeholder="e.g. Ethiopia"
                 className="px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500"
               />
-              {errors.origin && <p className="text-xs text-red-500">{errors.origin.message}</p>}
+              {errors.origin && (
+                <p className="text-xs text-red-500" role="alert">
+                  {errors.origin.message}
+                </p>
+              )}
             </div>
 
             {/* Description */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">
+              <label htmlFor="register-product-description" className="text-sm font-medium">
                 Description <span className="text-[var(--muted)] font-normal">(optional)</span>
               </label>
               <textarea
+                id="register-product-description"
                 {...register('description')}
                 rows={3}
                 placeholder="Additional details about the product…"
@@ -241,7 +248,7 @@ export function RegisterProductForm({ open, onOpenChange }: Props) {
                 disabled={pending}
                 className="flex-1 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {pending ? 'Registering…' : isOnline ? 'Register Product' : 'Queue Offline'}
+                {pending ? 'Registering…' : 'Register Product'}
               </button>
             </div>
           </form>

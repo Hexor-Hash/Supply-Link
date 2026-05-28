@@ -1,17 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { AlertTriangle, WifiOff } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { Button, Input, Select, SelectItem, FileUpload } from '@/components/ui';
 import { useToast } from '@/lib/hooks/useToast';
 import { EventType } from '@/lib/types';
 import { EVENT_TYPE_CONFIG } from '@/lib/eventTypeConfig';
 import { productIdSchema, metadataSchema } from '@/lib/validators';
-import { useOfflineDraft } from '@/lib/hooks/useOfflineDraft';
-import { offlineQueue } from '@/lib/offlineQueue';
+import { sealSensitiveMetadata, type SealedMetadata } from '@/lib/crypto/metadata';
 
 const schema = z.object({
   productId: productIdSchema,
@@ -29,30 +28,11 @@ interface AddEventFormProps {
 
 export function AddEventForm({ productId: initialProductId, onSuccess }: AddEventFormProps) {
   const toast = useToast();
+  const tp = useTranslations('privateMetadata');
   const [pending, setPending] = useState(false);
   const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
-  const [complianceError, setComplianceError] = useState<string | null>(null);
-  const [isOnline, setIsOnline] = useState(
-    typeof navigator !== 'undefined' ? navigator.onLine : true,
-  );
-
-  const draftKey = `add-event-draft${initialProductId ? `-${initialProductId}` : ''}`;
-  const { draft, saveDraft, clearDraft } = useOfflineDraft<FormValues>(draftKey);
-
-  useEffect(() => {
-    function onOnline() {
-      setIsOnline(true);
-    }
-    function onOffline() {
-      setIsOnline(false);
-    }
-    window.addEventListener('online', onOnline);
-    window.addEventListener('offline', onOffline);
-    return () => {
-      window.removeEventListener('online', onOnline);
-      window.removeEventListener('offline', onOffline);
-    };
-  }, []);
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [sealed, setSealed] = useState<SealedMetadata | null>(null);
 
   const {
     register,
@@ -63,19 +43,13 @@ export function AddEventForm({ productId: initialProductId, onSuccess }: AddEven
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: draft ?? {
+    defaultValues: {
       productId: initialProductId || '',
       location: '',
       eventType: 'HARVEST',
       metadata: '{}',
     },
   });
-
-  const formValues = watch();
-
-  useEffect(() => {
-    saveDraft(formValues);
-  }, [JSON.stringify(formValues)]);
 
   const eventType = watch('eventType');
 
@@ -100,30 +74,48 @@ export function AddEventForm({ productId: initialProductId, onSuccess }: AddEven
     }
 
     setPending(true);
+    setSealed(null);
     const toastId = toast.loading('Adding tracking event…');
 
     try {
+      // Merge attachmentUrl into metadata if present
+      let finalMetadata = values.metadata;
+      if (attachmentUrl) {
+        const parsed = JSON.parse(values.metadata || '{}');
+        parsed.attachmentUrl = attachmentUrl;
+        finalMetadata = JSON.stringify(parsed);
+      }
+
+      if (isPrivate) {
+        // Encrypt off-chain; only the commitment goes on-chain.
+        const sealedResult = await sealSensitiveMetadata(finalMetadata);
+        // TODO: call add_private_tracking_event via Soroban client with
+        // sealedResult.commitment, and persist sealedResult.envelope off-chain.
+        await new Promise((r) => setTimeout(r, 1200));
+        const txHash = `mock_tx_${Date.now()}`;
+
+        toast.dismiss(toastId);
+        toast.success(tp('submitSuccess'), txHash);
+        setSealed(sealedResult);
+        reset();
+        setAttachmentUrl(null);
+        setIsPrivate(false);
+        onSuccess?.();
+        return;
+      }
+
       // TODO: call add_tracking_event via Soroban client with finalMetadata
       await new Promise((r) => setTimeout(r, 1200));
       const txHash = `mock_tx_${Date.now()}`;
 
       toast.dismiss(toastId);
       toast.success('Event added successfully', txHash);
-      clearDraft();
       reset();
       setAttachmentUrl(null);
       onSuccess?.();
     } catch (err) {
       toast.dismiss(toastId);
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      if (message.toLowerCase().includes('compliance') || message.includes('ComplianceViolation')) {
-        setComplianceError(
-          'This event was rejected by the product compliance policy. ' +
-            'Ensure all required preceding stages have been recorded and time limits are respected.',
-        );
-      } else {
-        toast.error('Failed to add event', message);
-      }
+      toast.error('Failed to add event', err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setPending(false);
     }
@@ -199,6 +191,20 @@ export function AddEventForm({ productId: initialProductId, onSuccess }: AddEven
         {errors.metadata && <p className="text-xs text-red-500">{errors.metadata.message}</p>}
       </div>
 
+      {/* Sensitive / private metadata toggle */}
+      <label className="flex items-start gap-2 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={isPrivate}
+          onChange={(e) => setIsPrivate(e.target.checked)}
+          className="mt-0.5"
+        />
+        <span className="flex flex-col">
+          <span className="text-sm font-medium">{tp('markPrivate')}</span>
+          <span className="text-xs text-[var(--muted)]">{tp('markPrivateHint')}</span>
+        </span>
+      </label>
+
       {/* File Attachment */}
       <FileUpload
         onUpload={(url) => setAttachmentUrl(url)}
@@ -206,8 +212,33 @@ export function AddEventForm({ productId: initialProductId, onSuccess }: AddEven
       />
 
       <Button type="submit" disabled={pending}>
-        {pending ? 'Adding…' : isOnline ? 'Add Event' : 'Queue Offline'}
+        {pending ? 'Adding…' : 'Add Event'}
       </Button>
+
+      {/* Post-submit: surface the decryption key + commitment for the user to save */}
+      {sealed && (
+        <div className="rounded-lg border border-amber-400/60 bg-amber-50 dark:bg-amber-950/30 p-4 flex flex-col gap-2">
+          <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
+            {tp('saveKeyTitle')}
+          </p>
+          <p className="text-xs text-amber-700/90 dark:text-amber-300/90">{tp('saveKeyWarning')}</p>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium">{tp('generatedKey')}</span>
+            <code className="text-xs font-mono break-all bg-[var(--card)] border border-[var(--card-border)] rounded px-2 py-1">
+              {sealed.keyBase64}
+            </code>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-medium">{tp('onChainCommitment')}</span>
+            <code className="text-xs font-mono break-all bg-[var(--card)] border border-[var(--card-border)] rounded px-2 py-1">
+              {sealed.commitment}
+            </code>
+          </div>
+          <Button type="button" variant="secondary" onClick={() => setSealed(null)}>
+            {tp('dismiss')}
+          </Button>
+        </div>
+      )}
     </form>
   );
 }

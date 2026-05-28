@@ -114,6 +114,57 @@
     "inactive": "Inactif",
     "verifiedBadge": "Vérifié sur Stellar · Voir le contrat",
     "journey": "Parcours du produit",
-    "scanAnother": "Scanner un autre QR"
+    "scanAnother": "Scanner un autre QR",
+    "communityRatings": "Avis de la communauté",
+    "noEvents": "Aucun événement enregistré pour ce produit.",
+    "eventTypes": {
+      "HARVEST": "Récolte",
+      "PROCESSING": "Traitement",
+      "SHIPPING": "Expédition",
+      "RETAIL": "Vente"
+    }
+  },
+  "ratings": {
+    "count": "{count, plural, =0 {Aucun avis pour le moment} one {# avis} other {# avis}}",
+    "leaveRating": "Laisser un avis",
+    "commentPlaceholder": "Ajouter un commentaire (facultatif, max. 500 caractères)",
+    "submitButton": "Envoyer l'avis",
+    "submitting": "Envoi...",
+    "connectPrompt": "Connectez votre portefeuille pour laisser un avis",
+    "connectWalletFirst": "Veuillez d'abord connecter votre portefeuille",
+    "selectRating": "Veuillez sélectionner une note",
+    "submitSuccess": "Avis envoyé avec succès",
+    "submitError": "Échec de l'envoi de l'avis"
+  },
+  "errors": {
+    "PRODUCT_NOT_FOUND": "Le produit demandé n'existe pas sur la chaîne.",
+    "NOT_AUTHORIZED": "Vous n'êtes pas autorisé à effectuer cette action sur ce produit.",
+    "APPROVER_NOT_AUTHORIZED": "L'approbateur n'est ni le propriétaire du produit ni un acteur autorisé.",
+    "OWNER_ONLY": "Seul le propriétaire du produit peut effectuer cette action.",
+    "NO_PENDING_EVENTS": "Il n'y a aucun événement en attente dans la file d'approbation pour ce produit.",
+    "PENDING_EVENT_EXPIRED": "Cet événement en attente a expiré et ne peut plus être approuvé.",
+    "INVALID_NONCE": "Le nonce fourni ne correspond pas à la valeur attendue. Actualisez et réessayez.",
+    "UNKNOWN": "Une erreur inattendue du contrat s'est produite. Veuillez réessayer."
+  },
+  "privateMetadata": {
+    "title": "Métadonnées privées",
+    "locked": "Ces métadonnées sont privées",
+    "lockedHint": "Seules les parties autorisées détenant la clé de déchiffrement peuvent les consulter. La provenance reste prouvée sur la chaîne.",
+    "onChainCommitment": "Engagement sur la chaîne",
+    "keyPlaceholder": "Collez la clé de déchiffrement",
+    "keyRequired": "Une clé de déchiffrement est requise.",
+    "decrypt": "Déchiffrer",
+    "decrypting": "Déchiffrement…",
+    "payloadUnavailable": "La charge chiffrée est indisponible.",
+    "commitmentMismatch": "La charge hors chaîne ne correspond pas à l'engagement sur la chaîne.",
+    "decryptFailed": "Échec du déchiffrement. Vérifiez que la clé est correcte.",
+    "verified": "Vérifié par rapport à l'engagement sur la chaîne",
+    "markPrivate": "Marquer les métadonnées comme privées",
+    "markPrivateHint": "Chiffre les métadonnées dans votre navigateur ; seul un engagement de hachage est stocké sur la chaîne.",
+    "submitSuccess": "Événement privé ajouté",
+    "saveKeyTitle": "Enregistrez votre clé de déchiffrement maintenant",
+    "saveKeyWarning": "Cette clé n'est affichée qu'une seule fois et n'est jamais envoyée au serveur. Quiconque la possède peut lire ces métadonnées ; sans elle, les données sont irrécupérables.",
+    "generatedKey": "Clé de déchiffrement",
+    "dismiss": "Terminé"
   }
 }

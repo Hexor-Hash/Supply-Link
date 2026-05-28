@@ -18,7 +18,10 @@ export const useStore = create<SupplyLinkStore>()(
     }),
     {
       name: 'supply-link-store',
-      partialize: (state) => ({ walletAddress: state.walletAddress }),
+      partialize: (state) => ({
+        walletAddress: state.walletAddress,
+        notifications: state.notifications,
+      }),
     },
   ),
 );

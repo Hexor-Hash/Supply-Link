@@ -97,6 +97,31 @@ describe('applyRateLimit', () => {
     expect(result!.status).toBe(429);
   });
 
+  it('grants authenticated wallet users a higher quota than anonymous callers', () => {
+    vi.stubEnv('TRUSTED_PROXY', 'false');
+    const anonConfig = { limit: 2, windowMs: 60_000 };
+    const authConfig = { limit: 5, windowMs: 60_000 };
+    const suffix = Math.random().toString(36).slice(2);
+
+    // Anonymous caller (no wallet) is blocked after 2 requests
+    const anonReq = () => makeRequest(`anon-${suffix}`);
+    applyRateLimit(anonReq(), `quota-${suffix}`, anonConfig, authConfig);
+    applyRateLimit(anonReq(), `quota-${suffix}`, anonConfig, authConfig);
+    const anonBlocked = applyRateLimit(anonReq(), `quota-${suffix}`, anonConfig, authConfig);
+    expect(anonBlocked).not.toBeNull();
+
+    // Wallet caller gets the authConfig quota (5), so a 3rd request still passes
+    const walletReq = () =>
+      new NextRequest('http://localhost/api/test', {
+        headers: { 'x-wallet-address': `GWALLET-${suffix}` },
+      });
+    applyRateLimit(walletReq(), `quota-${suffix}`, anonConfig, authConfig);
+    applyRateLimit(walletReq(), `quota-${suffix}`, anonConfig, authConfig);
+    const walletThird = applyRateLimit(walletReq(), `quota-${suffix}`, anonConfig, authConfig);
+    expect(walletThird).toBeNull();
+    vi.unstubAllEnvs();
+  });
+
   it('allows different identities independently', () => {
     vi.stubEnv('TRUSTED_PROXY', 'false');
     const config = { limit: 1, windowMs: 60_000 };
@@ -119,5 +144,69 @@ describe('getThrottleCounts', () => {
   it('returns an object with endpoint keys', () => {
     const counts = getThrottleCounts();
     expect(typeof counts).toBe('object');
+  });
+});
+
+describe('RATE_LIMIT_PRESETS', () => {
+  it('verify preset is stricter than default', () => {
+    expect(RATE_LIMIT_PRESETS.verify.limit).toBeLessThan(RATE_LIMIT_PRESETS.default.limit);
+    expect(RATE_LIMIT_PRESETS.verify.burstLimit).toBeDefined();
+  });
+
+  it('publicRead preset has burst controls', () => {
+    expect(RATE_LIMIT_PRESETS.publicRead.burstLimit).toBeDefined();
+    expect(RATE_LIMIT_PRESETS.publicRead.burstWindowMs).toBeDefined();
+  });
+
+  it('authenticated preset allows more requests than publicRead', () => {
+    expect(RATE_LIMIT_PRESETS.authenticated.limit).toBeGreaterThan(
+      RATE_LIMIT_PRESETS.publicRead.limit,
+    );
+  });
+});
+
+describe('rate limit violation logging', () => {
+  it('logs a warning when a request is throttled', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const config = { limit: 1, windowMs: 60_000 };
+    const ip = `test-log-${Math.random()}`;
+    applyRateLimit(makeRequest(ip), 'log-test', config);
+    applyRateLimit(makeRequest(ip), 'log-test', config); // triggers throttle
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('[rate-limit]'));
+    warnSpy.mockRestore();
+  });
+});
+
+describe('abusive traffic simulation', () => {
+  it('blocks sustained abusive traffic while allowing legitimate users', () => {
+    vi.stubEnv('TRUSTED_PROXY', 'false');
+    const abusiveConfig = { limit: 5, windowMs: 60_000, burstLimit: 2, burstWindowMs: 10_000 };
+    const abusiveIp = `abuser-${Math.random()}`;
+    const legitimateIp = `legit-${Math.random()}`;
+
+    // Abuser fires 10 requests
+    let blocked = 0;
+    for (let i = 0; i < 10; i++) {
+      const result = applyRateLimit(
+        new NextRequest('http://localhost/api/test', {
+          headers: { 'x-wallet-address': abusiveIp },
+        }),
+        'abuse-test',
+        abusiveConfig,
+      );
+      if (result !== null) blocked++;
+    }
+    expect(blocked).toBeGreaterThan(0);
+
+    // Legitimate user is unaffected
+    const legitimateResult = applyRateLimit(
+      new NextRequest('http://localhost/api/test', {
+        headers: { 'x-wallet-address': legitimateIp },
+      }),
+      'abuse-test',
+      abusiveConfig,
+    );
+    expect(legitimateResult).toBeNull();
+    vi.unstubAllEnvs();
   });
 });
